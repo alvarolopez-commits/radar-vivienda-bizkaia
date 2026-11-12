@@ -1,21 +1,28 @@
 // Intro del Radar: el mismo reveal que el dashboard PCI (haz de luz, logotipo que se descubre con un barrido, texto que
 // sube y, al final, el logotipo vuela hasta el raíl). El CSS está en pci.css (copia literal); aquí solo la secuencia, que
 // es la de playIntro() de pci-dashboard. Un clic, una tecla o el botón la saltan; con «reducir movimiento» no se reproduce.
+// Se ve una vez por sesión del navegador (sessionStorage); el botón del raíl la repite cuando se quiera.
 import { reduced } from "./comun.js";
 import { closeDrawer, placeLenses } from "./pci.js";
 
 const $ = (s) => document.querySelector(s);
 const tpl = $("#intro").cloneNode(true);
+const KEY = "radar-intro";
+const seen = () => { try { return !!sessionStorage.getItem(KEY); } catch { return false; } };
+const mark = () => { try { sessionStorage.setItem(KEY, "1"); } catch { /* sin almacenamiento: se verá en cada carga */ } };
 
 /** Las entradas de cada panel (.rise) vuelven a tocarse cuando la intro deja ver la página. */
 function replayRise() {
   document.querySelectorAll("#hoja .rise").forEach((e) => { e.style.animation = "none"; void e.offsetWidth; e.style.animation = ""; });
 }
 
-export function playIntro() {
+/** @param {{auto?: boolean}} o auto: arranque de la página (solo la primera vez de la sesión); sin auto, el botón de repetir. */
+export function playIntro({ auto = false } = {}) {
   const old = $("#intro"), intro = tpl.cloneNode(true), app = $(".app");
   old.replaceWith(intro);
-  if (reduced()) { intro.hidden = true; app.classList.remove("pre"); app.inert = false; return; }
+  if (!auto) document.documentElement.classList.remove("sin-intro"); // al repetirla a mano, el CSS que la oculta se retira
+  if (reduced() || (auto && seen())) { intro.hidden = true; app.classList.remove("pre"); app.inert = false; return; }
+  mark();
   intro.hidden = false; app.classList.add("pre"); app.inert = true; closeDrawer(true);
   let done = false;
   const timers = [];
@@ -41,4 +48,4 @@ export function playIntro() {
   timers.push(setTimeout(() => finish(false), 3500));
 }
 
-$("#replay")?.addEventListener("click", playIntro);
+$("#replay")?.addEventListener("click", () => playIntro());

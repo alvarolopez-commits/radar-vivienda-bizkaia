@@ -62,9 +62,10 @@ export function fieldPill(label, id, options, value, onPick, neutral = "") {
 let open = null;
 export function closeDrawer(now = false) {
   if (!open) return;
-  const { scrim, drawer, opener, off } = open;
+  const { scrim, drawer, opener, off, onClose } = open;
   open = null;
   off();
+  onClose?.();
   const done = () => { scrim.remove(); drawer.remove(); opener?.focus?.({ preventScroll: true }); };
   if (now || reduced()) { done(); return; }
   scrim.classList.add("closing"); drawer.classList.add("closing");
@@ -72,7 +73,7 @@ export function closeDrawer(now = false) {
 }
 
 /** top: nodos de la cabecera oscura; body: nodos del cuerpo. */
-export function openDrawer({ label, top, body }) {
+export function openDrawer({ label, top, body, onClose }) {
   closeDrawer(true);
   const opener = document.activeElement;
   const close = el("button", { type: "button", class: "icon-btn", "aria-label": "Cerrar" }, [ico("i-x")]);
@@ -96,6 +97,6 @@ export function openDrawer({ label, top, body }) {
   document.body.append(scrim, drawer);
   const app = document.querySelector(".app");
   app.inert = true; // el raíl y la barra también quedan fuera mientras el cajón es modal
-  open = { scrim, drawer, opener, off: () => { document.removeEventListener("keydown", onKey); app.inert = false; } };
+  open = { scrim, drawer, opener, onClose, off: () => { document.removeEventListener("keydown", onKey); app.inert = false; } };
   close.focus({ preventScroll: true });
 }
