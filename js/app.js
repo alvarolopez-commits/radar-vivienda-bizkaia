@@ -5,12 +5,14 @@
 import { OPTIONAL, REQUIRED, checkTerritoryFiles, isDataFile } from "./contrato.js";
 import { renderIndicadores } from "./indicadores.js";
 import { aplicarPaletaPCI } from "./colores.js";
+import { playIntro } from "./intro.js";
 import { closeDrawer, ico, placeLenses } from "./pci.js";
 import { parseHash, redirectOf } from "./rutas.js";
 import { renderSituacion } from "./situacion.js";
 import { el, longDate } from "./ui.js";
 
 aplicarPaletaPCI();
+playIntro(); // arranca ya: cubre la carga de los datos
 
 // Con ?marcar (local) o #marcar (artifact) se rodea en naranja lo nuevo, a aprobar.
 const marcar = () => document.documentElement.classList.toggle("marcar", new URLSearchParams(location.search).has("marcar") || location.hash === "#marcar");

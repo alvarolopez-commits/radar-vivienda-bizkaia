@@ -7,10 +7,11 @@
   <meta name="robots" content="noindex">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Manrope:wght@400;500&display=swap">
   <link rel="stylesheet" href="css/pci.css">
   <link rel="stylesheet" href="css/radar.css">
   <script type="module" src="js/app.js"></script>
+  <noscript><style>.intro { display: none; } .app.pre .main { opacity: 1; transform: none; filter: none; } .app.pre .dock { opacity: 1; }</style></noscript>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -33,7 +34,19 @@
 </svg>
 <a class="salto" href="#hoja" data-saltar>Saltar al contenido</a>
 
-<div class="app">
+<div class="intro" id="intro">
+  <div class="beams-wrap" aria-hidden="true"><div class="beams"></div></div>
+  <div class="intro-sign" role="img" aria-label="Radar de vivienda, Bizkaia">
+    <div class="intro-logo"><div class="intro-mark"><img src="assets/radar-logo.svg" width="130" height="130" alt=""></div><span class="intro-sweep"></span><span class="intro-pulse"></span></div>
+    <div class="intro-text">
+      <div class="intro-sub">Radar de vivienda</div>
+      <div class="intro-by"><span>Bizkaia · 113 municipios</span></div>
+    </div>
+  </div>
+  <button class="intro-skip" type="button">Saltar la intro</button>
+</div>
+
+<div class="app pre">
   <aside class="dock ink lg glass-rail" aria-label="Navegación del radar">
     <a class="lockup" href="#situacion" title="Radar de vivienda: volver a Situación" aria-label="Radar de vivienda, volver a Situación">
       <svg viewBox="0 0 130.39 130.39" aria-hidden="true">
@@ -43,7 +56,7 @@
         </defs>
         <rect x="1.94" y="1.95" width="126.5" height="126.5" rx="26" fill="#151a34"/>
         <rect x="1.94" y="1.95" width="126.5" height="126.5" rx="26" fill="none" stroke="url(#lg-edge)" stroke-width="1.5"/>
-        <text x="65.2" y="84" text-anchor="middle" font-family="Montserrat, system-ui, sans-serif" font-weight="700" font-size="56" letter-spacing="-1" fill="url(#lg-txt)">RV</text>
+        <g fill="none" stroke="url(#lg-txt)" stroke-width="7.2" stroke-linejoin="round" stroke-linecap="round"><path d="M33 82V48h17a10.5 10.5 0 0 1 0 21H33M47 69l13.5 13"/><path d="M68 48l14 34 14-34"/></g>
       </svg>
       <div class="label"><b data-producto>Radar de vivienda</b><span data-territorio>Bizkaia</span></div>
     </a>
@@ -60,7 +73,7 @@
       <span data-enlaces class="enlaces"></span>
     </nav>
 
-    <div class="dock-foot"><span class="label dock-fecha" data-fecha></span></div>
+    <div class="dock-foot"><button class="replay" id="replay" type="button" title="Ver la intro otra vez" aria-label="Ver la intro otra vez"><svg class="ico"><use href="#i-reset"/></svg></button><span class="label dock-fecha" data-fecha></span></div>
   </aside>
 
   <div class="main">

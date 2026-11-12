@@ -79,6 +79,7 @@
 .escala-sin .muestra { background: var(--land) !important; }
 
 /* las imágenes de fondo de pci.css se escribieron relativas a la raíz; aquí el CSS vive en css/ */
+.intro .beams { background-image: url(../assets/highbeam-reveal.webp); }
 .keybox.bg-flow1 { background-image: url(../assets/flow-01.webp); }
 .keybox.bg-flow2 { background-image: url(../assets/flow-02.webp); }
 .drawer-top { background-image: url(../assets/flow-02.webp); }
