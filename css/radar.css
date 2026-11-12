@@ -181,3 +181,18 @@ table.mini .u { color: var(--muted); font-family: var(--font-ui); }
   .terr, .plano { height: 380px; }
 }
 @media (prefers-reduced-motion: reduce) { .kb-lead .tick { animation: none; } }
+
+/* ---------- Arreglos de la crítica de diseño (2026-11-12) ---------- */
+/* el título recibe el foco al cambiar de vista (lector de pantalla), pero sin recuadro */
+#titulo:focus, .hoja:focus { outline: none; }
+/* pie: 4,35:1 con --muted; con el secundario de PCI pasa de 5:1 */
+.foot { color: var(--pci-text-secondary); }
+/* enlaces que salen al Radar publicado: una insignia ↗ sobre el icono, visible también con el raíl cerrado */
+.nav a.ext::after { content: "↗"; position: absolute; left: 34px; top: 5px; display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; background: rgba(139, 205, 255, .24); color: var(--fg); font: 600 9px/1 var(--font-ui); pointer-events: none; }
+/* lista de municipios: un punto por alerta; con anillo, grave */
+.rank-list.muni button { grid-template-columns: 14px minmax(0, 150px) minmax(0, 1fr) 92px; }
+.rank-list.muni .v.dots { display: flex; justify-content: flex-end; align-items: center; gap: 5px; min-height: 12px; }
+.v.dots .dot { width: 9px; height: 9px; margin: 0; flex: none; }
+.v.dots .dot.grave { box-shadow: 0 0 0 2px var(--pci-surface), 0 0 0 3.5px var(--pci-text-primary); margin-inline: 2px; }
+.rank-list.muni button.sel .v.dots .dot.grave { box-shadow: 0 0 0 2px var(--pci-table-row-selected), 0 0 0 3.5px var(--pci-text-primary); }
+.rank-leyenda { margin: 6px 24px 0; font-size: 12.5px; color: var(--pci-text-secondary); }

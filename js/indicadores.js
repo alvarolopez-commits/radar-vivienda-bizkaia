@@ -5,7 +5,7 @@
 import { announce } from "./comun.js";
 import { lineChart, stripChart } from "./graficos.js";
 import { colorOf, quintiles, scaleLegend, svgMap } from "./mapa.js";
-import { fieldPill, placeLenses, seg } from "./pci.js";
+import { fieldPill, placeLenses, seg, shortPeriod } from "./pci.js";
 import { LABELS, capital, changeText, csv, download, el, es, isNum, labelTag, periodLabel, ruleText, sourcesLine, stateTag, unitOf } from "./ui.js";
 
 const lastOf = (ind) => [...ind.serie].reverse().find(([, v]) => isNum(v)) ?? null;
@@ -70,7 +70,7 @@ export function renderIndicadores(root, store, ctx) {
     return el("section", { class: "card rise", style: "--i:2", "aria-labelledby": "f-serie" }, [
       el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { id: "f-serie", text: `En el tiempo · ${ind.ambito}` })])]),
       el("div", { class: "panel-b" }, [
-        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 230, etiqueta: `Serie de ${ind.nombre} en ${ind.ambito}`,
+        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 230, etiqueta: `Serie de ${ind.nombre} en ${ind.ambito}`, xLabel: shortPeriod,
           fmtTip: fmtOf(ind), fmt: (v) => es(v, ind.decimales), umbral: t ? { ...t, corto: `${t.tipo === "meta" ? "Meta" : "Umbral"}: ${es(t.valor)}` } : null })
           : el("p", { class: "note", text: xs.length ? `Un solo dato publicado (${periodLabel(xs[0])}): la serie empezará con el próximo.` : "Sin serie para el conjunto del territorio." }),
         xs.length > 1 ? dataTable("Ver la serie en una tabla", ["Periodo", ind.nombre], ind.serie.map(([p, v]) => [periodLabel(p), isNum(v) ? fmtOf(ind)(v) : "sin dato"])) : null,

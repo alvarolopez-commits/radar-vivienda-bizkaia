@@ -6,7 +6,7 @@ import { announce, reduced } from "./comun.js";
 import { lineChart } from "./graficos.js";
 import { NODATA, svgMap } from "./mapa.js";
 import { newState, territory3d } from "./territorio3d.js";
-import { fieldPill, ico, openDrawer, placeLenses, seg } from "./pci.js";
+import { fieldPill, ico, openDrawer, placeLenses, seg, shortPeriod } from "./pci.js";
 import { changeText, el, es, extLink, isNum, labelTag, periodLabel, ruleText, sourcesLine, stateTag, unitOf } from "./ui.js";
 
 const ALERT_COLORS = ["#b4545b", "#1a4d7a", "#5d6d1f", "#86bfc6", "#c08a2d", "#4d5a6a", "#d0878c", "#2e7d76"];
@@ -54,7 +54,7 @@ export function renderSituacion(root, store, ctx) {
   const worse = ks.filter((k) => k.actual.estado === "empeora").length;
   const total = Object.keys(store.territorio.municipios).length;
   const color = (t) => ALERT_COLORS[types.indexOf(t) % ALERT_COLORS.length];
-  const S = { tipo: "", vista: "3d", sel: null, all: false };
+  const S = { tipo: "", vista: "plano", sel: null, all: false };
   const body = root.querySelector("[data-cuerpo]");
 
   // ---------- isla oscura ----------
@@ -82,7 +82,7 @@ export function renderSituacion(root, store, ctx) {
   }
 
   // ---------- mapa ----------
-  const host3d = el("div", { class: "terr" }), hostFlat = el("div", { class: "plano", hidden: true });
+  const host3d = el("div", { class: "terr", hidden: true }), hostFlat = el("div", { class: "plano" });
   const flat = svgMap(store.geo, { paint: () => NODATA, label: `Mapa de los ${unit.varias} con alertas`,
     tip: (c) => { const l = (a.municipios[c] ?? []).filter((x) => !S.tipo || x.tipo === S.tipo); return { title: store.name(c), lines: l.length ? l.map((x) => x.texto) : ["Sin alertas"] }; } });
   hostFlat.append(flat.svg);
@@ -111,17 +111,26 @@ export function renderSituacion(root, store, ctx) {
     };
     anim = requestAnimationFrame(step);
   };
-  const showView = () => {
-    const three = S.vista === "3d" && ok3d !== false;
-    host3d.hidden = !three; hostFlat.hidden = three;
-    mapNote.textContent = three ? "En 3D, la altura y el color dicen lo mismo que el mapa plano. Elige el municipio en la lista." : "Toca un municipio del mapa o elígelo en la lista.";
-    mapNote.toggleAttribute("data-nuevo", true);
+  // El 3D (Three.js, 670 kB) se monta la primera vez que se pide, como en el Radar publicado; hasta entonces se ve el plano.
+  let mounted = false;
+  const fallback = () => { ok3d = false; S.vista = "plano"; vistaSeg.set("plano"); vistaSeg.querySelector('[data-v="3d"]').disabled = true; showView(); };
+  const mount3d = () => {
+    if (mounted) return;
+    mounted = true;
+    territory3d(host3d, store.geo, layers, { state }).then((ok) => { ok3d = ok; if (ok) showView(); else fallback(); }).catch(fallback);
   };
+  const showView = () => {
+    if (S.vista === "3d") mount3d();
+    const three = S.vista === "3d" && ok3d === true;
+    host3d.hidden = !three; hostFlat.hidden = three;
+    mapNote.textContent = S.vista === "3d" && ok3d !== true ? "Cargando el mapa 3D…" : three ? "En 3D, la altura y el color dicen lo mismo que el mapa plano. Elige el municipio en la lista." : "Toca un municipio del mapa o elígelo en la lista.";
+  };
+  const vistaSeg = seg("Vista del mapa", [["plano", "Plano"], ["3d", "3D"]], S.vista, (v) => { S.vista = v; showView(); });
+  vistaSeg.setAttribute("data-nuevo", "");
   const legend = el("ul", { class: "ramp leyenda-alertas", "aria-label": "Tipos de alerta" }, types.map((t) =>
     el("li", {}, [el("i", { class: "dot", style: `background:${color(t)}`, "aria-hidden": "true" }), a.tipos[t]])));
   const mapNote = el("p", { class: "map-note" });
-  territory3d(host3d, store.geo, layers, { state }).then((ok) => { ok3d = ok; if (!ok) { ctx.vistaSeg?.set("plano"); S.vista = "plano"; } showView(); }).catch(() => { ok3d = false; S.vista = "plano"; showView(); });
-  host3d.addEventListener("sin3d", () => { ok3d = false; S.vista = "plano"; ctx.vistaSeg?.set("plano"); showView(); });
+  host3d.addEventListener("sin3d", fallback);
 
   // ---------- lista de municipios ----------
   const list = el("div", { class: "rank-list muni", "aria-label": `${unit.varias} con alertas` });
@@ -142,7 +151,9 @@ export function renderSituacion(root, store, ctx) {
         el("span", { class: "code" }, [el("i", { class: "dot", style: `background:${color(g.tipo)}` })]),
         el("span", { class: "name", text: store.name(c) }),
         el("span", { class: "bar-track" }, [el("span", { class: "liquid", style: `width:${(l.length / max) * 100}%` })]),
-        el("span", { class: "v", text: grave ? "Grave" : `${l.length} ${l.length === 1 ? "alerta" : "alertas"}` }),
+        // un punto por alerta, del color de su tipo; con anillo si es grave (antes: la palabra «Grave», repetida en casi todas las filas)
+        el("span", { class: "v dots", role: "img", "aria-label": `${l.length} ${l.length === 1 ? "alerta" : "alertas"}${grave ? ", alguna grave" : ""}` },
+          l.map((x) => el("i", { class: `dot${x.grave ? " grave" : ""}`, style: `background:${color(x.tipo)}` }))),
       ]);
       b.addEventListener("click", () => select(c, false));
       return b;
@@ -202,7 +213,7 @@ export function renderSituacion(root, store, ctx) {
           el("div", { class: "price-note" }, [`${periodLabel(x.periodo)} · ${ind.ambito} `, stateTag(x.estado, store.catalogo.estados[x.estado])])] },
       body: [
         el("div", {}, [labelTag(ind.etiqueta)]),
-        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 200, etiqueta: `Serie de ${ind.nombre}`,
+        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 200, etiqueta: `Serie de ${ind.nombre}`, xLabel: shortPeriod,
           fmtTip: (v) => `${es(v, ind.decimales)} ${unitOf(ind.unidad)}`, umbral: th ? { ...th, corto: th.tipo === "meta" ? `Meta: ${es(th.valor)}` : `Umbral: ${es(th.valor)}` } : null })
           : el("p", { class: "note", text: "Solo hay un dato publicado: la serie empezará con el próximo." }),
         el("dl", { class: "kv" }, kv.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })])),
@@ -228,10 +239,10 @@ export function renderSituacion(root, store, ctx) {
     kb,
     el("div", { class: "card atlas-card rise", style: "--i:2" }, [el("div", { class: "atlas" }, [
       el("div", {}, [
-        el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { id: "s-alertas", text: `Alertas por ${unit.una}` }), el("p", { text: `Datos de ${periodLabel(a.fecha)}.` })])]),
+        el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { id: "s-alertas", text: `Alertas por ${unit.una}` }), el("p", { text: `Datos de ${periodLabel(a.fecha)}.` })]), vistaSeg]),
         el("div", { class: "map-wrap" }, [host3d, hostFlat, legend, mapNote]),
       ]),
-      el("div", { class: "rank" }, [count, list, el("div", { class: "pager" }, [pager]), detail]),
+      el("div", { class: "rank" }, [count, el("p", { class: "rank-leyenda", text: "Cada punto es una alerta, del color de su tipo. El punto con anillo es una alerta grave.", "data-nuevo": "" }), list, el("div", { class: "pager" }, [pager]), detail]),
     ])]),
     el("div", { class: "card dash rise", style: "--i:3" }, [
       el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { text: `Los ${ks.length} indicadores clave` }), el("p", { text: "Elige uno para ver su serie, su regla y su próximo dato." })])]),
@@ -244,10 +255,7 @@ export function renderSituacion(root, store, ctx) {
     head: () => ({ sub: finding.join("") }),
     bar() {
       ctx.tipoPill = fieldPill("Tipo de alerta", "f-tipo", [["", "Todas"], ...types.map((t) => [t, `${a.tipos[t]} (${G[t].n})`])], S.tipo, (v) => pickType(v, true));
-      ctx.vistaSeg = seg("Vista del mapa", [["3d", "3D"], ["plano", "Plano"]], S.vista, (v) => { S.vista = v; showView(); });
-      ctx.vistaSeg.setAttribute("data-nuevo", "");
-      if (ok3d === false) ctx.vistaSeg.querySelector('[data-v="3d"]').disabled = true;
-      return [ctx.tipoPill, el("span", { class: "sep", "aria-hidden": "true" }), ctx.vistaSeg];
+      return [ctx.tipoPill];
     },
     show(sub) { if (sub === "alertas") document.getElementById("s-alertas")?.scrollIntoView(); requestAnimationFrame(placeLenses); },
   };

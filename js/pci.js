@@ -2,7 +2,17 @@
 // segmentados, el selector con etiqueta de la barra de filtros, el cajón de detalle y los iconos del sprite.
 // Los nombres de clase son los de pci.css (copia literal de pci-dashboard).
 import { reduced } from "./comun.js";
-import { el, svgEl } from "./ui.js";
+import { el, periodLabel, svgEl } from "./ui.js";
+
+/** Periodo corto para el eje de un gráfico: «2010-T1» → «T1 2010», «MAY2026» → «may 2026». El largo («1.er trim. de 2010») se pisaba en series trimestrales. */
+export function shortPeriod(p) {
+  const s = String(p);
+  let m;
+  if ((m = s.match(/^(\d{4})-T(\d)$/))) return `T${m[2]} ${m[1]}`;
+  if ((m = s.match(/^12m-(\d{4})T(\d)$/))) return `T${m[2]} ${m[1]}`;
+  if ((m = s.match(/^([A-Z]{3})(\d{4})$/))) return `${m[1].toLowerCase()} ${m[2]}`;
+  return periodLabel(s);
+}
 
 export const ico = (id, cls = "ico") => { const s = svgEl("svg", { class: cls, "aria-hidden": "true" }); s.append(svgEl("use", { href: `#${id}` })); return s; };
 
