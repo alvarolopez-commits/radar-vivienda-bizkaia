@@ -94,7 +94,8 @@ export function openDrawer({ label, top, body }) {
   };
   document.addEventListener("keydown", onKey);
   document.body.append(scrim, drawer);
-  document.getElementById("hoja").inert = true;
-  open = { scrim, drawer, opener, off: () => { document.removeEventListener("keydown", onKey); document.getElementById("hoja").inert = false; } };
+  const app = document.querySelector(".app");
+  app.inert = true; // el raíl y la barra también quedan fuera mientras el cajón es modal
+  open = { scrim, drawer, opener, off: () => { document.removeEventListener("keydown", onKey); app.inert = false; } };
   close.focus({ preventScroll: true });
 }

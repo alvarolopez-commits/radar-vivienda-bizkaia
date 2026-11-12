@@ -282,3 +282,21 @@ table.mini td.num { font-size: var(--t-14); }
 .ficha-kv .fila { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: var(--t-14); }
 .ficha-kv dt { margin: 0; color: var(--muted); }
 .ficha-kv dd { margin: 0; overflow-wrap: anywhere; }
+
+/* ---------- Accesibilidad (2026-11-12) ---------- */
+/* en una rejilla con [data-cuerpo] y .stack «display: contents», las tarjetas son hijos directos de .view y necesitan min-width: 0
+   para que una tabla ancha se desplace dentro de su caja y no ensanche la página (a 768 px el catálogo medía 1196) */
+[data-cuerpo] > *, .stack > * { min-width: 0; }
+/* objetivos de pulsación: mínimo 24 × 24 px (WCAG 2.2, 2.5.8) en enlaces sueltos y en «Ver la serie en una tabla» */
+.go, .datos-tabla summary, .foot a { display: inline-flex; align-items: center; min-height: 24px; }
+.datos-tabla summary { cursor: pointer; }
+/* bordes de controles con 3:1 como mínimo contra el fondo (WCAG 1.4.11); el borde de PCI (#D3DCE8) daba 1,4:1 */
+:root { --borde-control: #7b8aa0; }
+.chipf, .btn { border-color: var(--borde-control); }
+.chipf[aria-pressed="true"] { border-color: var(--pci-action); }
+.drawer .who { color: var(--fg); }
+/* movimiento: con «reducir movimiento» no hay desplazamientos ni cambios de escala al pasar o pulsar */
+@media (prefers-reduced-motion: reduce) {
+  .est, .chipf, .linea, .btn, .tile, button.tile { transition: none; }
+  .est:hover, button.tile:hover, .chipf:active, .linea:active { transform: none; }
+}

@@ -190,6 +190,8 @@ export function renderSituacion(root, store, ctx) {
     const f = (c) => a.municipios[c].filter((z) => !S.tipo || z.tipo === S.tipo);
     return f(y).filter((z) => z.grave).length - f(x).filter((z) => z.grave).length || f(y).length - f(x).length || store.name(x).localeCompare(store.name(y), "es");
   });
+  // el tipo de cada alerta, también en texto: los puntos solo se distinguen por color
+  const dotsText = (l) => `${l.length} ${l.length === 1 ? "alerta" : "alertas"}: ${l.map((x) => `${a.tipos[x.tipo].toLowerCase()}${x.grave ? " (grave)" : ""}`).join(", ")}`;
   function paintList() {
     const all = rows(), shown = S.all ? all : all.slice(0, FIRST);
     const f = (c) => a.municipios[c].filter((z) => !S.tipo || z.tipo === S.tipo);
@@ -201,7 +203,7 @@ export function renderSituacion(root, store, ctx) {
         el("span", { class: "name", text: store.name(c) }),
         el("span", { class: "bar-track" }, [el("span", { class: "liquid", style: `width:${(l.length / max) * 100}%` })]),
         // un punto por alerta, del color de su tipo; con anillo si es grave
-        el("span", { class: "v dots", role: "img", "aria-label": `${l.length} ${l.length === 1 ? "alerta" : "alertas"}${grave ? ", alguna grave" : ""}` },
+        el("span", { class: "v dots", role: "img", title: dotsText(l), "aria-label": dotsText(l) },
           l.map((x) => el("i", { class: `dot${x.grave ? " grave" : ""}`, style: `background:${color(x.tipo)}` }))),
       ]);
       b.addEventListener("click", () => select(c, false));

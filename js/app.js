@@ -63,7 +63,7 @@ function frame(store) {
   document.querySelectorAll("[data-territorio]").forEach((n) => { n.textContent = t.nombre; });
   document.querySelectorAll("[data-fecha]").forEach((n) => { n.textContent = `Datos descargados el ${date}`; });
   const more = document.querySelector("[data-enlaces]");
-  for (const e of t.enlaces ?? []) more.append(el("a", { class: "ext", href: e.url, rel: "noopener", title: e.texto },[ico("i-arrow"), el("span", { class: "label", text: `${e.texto} ↗` })]));
+  for (const e of t.enlaces ?? []) more.append(el("a", { class: "ext", href: e.url, rel: "noopener", title: e.texto },[ico("i-arrow"), el("span", { class: "label" }, [e.texto, el("span", { "aria-hidden": "true", text: " ↗" }), el("span", { class: "solo-lectores", text: " (abre otra web)" })])]));
 }
 
 function showProblems(problems) {
@@ -91,6 +91,8 @@ async function init() {
     return;
   }
 
+  // «Saltar al contenido»: lleva el foco a la hoja sin cambiar la dirección (que es la ruta); sin esto, #hoja se tomaba por una vista
+  document.querySelector("[data-saltar]").addEventListener("click", (e) => { e.preventDefault(); document.getElementById("hoja").focus(); });
   const views = {}, ctxs = {};
   const filters = document.getElementById("filters");
   const h1 = document.getElementById("titulo"), lede = document.querySelector("[data-sub]"), scope = document.getElementById("scope");
