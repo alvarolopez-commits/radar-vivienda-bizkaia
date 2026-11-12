@@ -138,9 +138,6 @@ table.mini.catalogo th.num, table.mini.catalogo td.num { text-align: right; }
 .ind-link { color: var(--pci-text-primary); font-weight: 600; text-decoration: none; }
 .ind-link:hover { color: var(--pci-action); text-decoration: underline; text-underline-offset: .2em; }
 table.mini .u { color: var(--muted); font-family: var(--font-ui); }
-.ficha-rejilla { display: grid; grid-template-columns: minmax(0, 7fr) minmax(280px, 5fr); gap: var(--space-gutter); align-items: start; }
-@container view (max-width: 960px) { .ficha-rejilla { grid-template-columns: minmax(0, 1fr); } }
-.ficha-kv { grid-template-columns: 150px minmax(0, 1fr); margin: 0 0 14px; }
 .datos-tabla { margin-top: 12px; }
 .datos-tabla summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--pci-action); }
 .datos-tabla .mini-table-wrap { max-height: 320px; overflow-y: auto; }
@@ -269,3 +266,19 @@ table.mini td.num { font-size: var(--t-14); }
 .flecha { font-weight: 600; }
 .linea-cifra b { font-size: var(--t-24); }
 .lockup b { font-size: var(--t-16); font-weight: 600; }
+
+/* ---------- Ficha de indicador: jerarquía (2026-11-12) ---------- */
+/* «De un vistazo»: los metadatos del indicador en una lista plana (12/14), no en mosaicos con cifra */
+.hechos { padding: 24px 26px; border-radius: var(--r-kpi); display: grid; gap: 8px; align-content: center; }
+.hechos .lab { font-size: var(--t-14); color: var(--fg-2); }
+.hechos-lista { display: grid; margin: 0; }
+.hechos-lista .fila { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.hechos-lista dt { margin: 0; font-size: var(--t-12); color: var(--fg-2); padding-top: 2px; }
+.hechos-lista dd { margin: 0; font-size: var(--t-14); color: var(--fg); }
+/* serie (7) y «Cómo se mide» (5) en una fila: a todo el ancho el texto del gráfico, que se escala con él, se agranda demasiado */
+.ficha-rejilla { display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 5fr); gap: var(--space-gutter); align-items: start; }
+@container view (max-width: 960px) { .ficha-rejilla { grid-template-columns: minmax(0, 1fr); } }
+.ficha-kv { display: grid; margin: 0 0 14px; }
+.ficha-kv .fila { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: var(--t-14); }
+.ficha-kv dt { margin: 0; color: var(--muted); }
+.ficha-kv dd { margin: 0; overflow-wrap: anywhere; }

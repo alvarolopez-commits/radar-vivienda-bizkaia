@@ -7,15 +7,13 @@ import { announce, reduced } from "./comun.js";
 import { lineChart } from "./graficos.js";
 import { NODATA, svgMap } from "./mapa.js";
 import { newState, territory3d } from "./territorio3d.js";
+import { ESTADOS, countText, estatusPanel } from "./estatus.js";
 import { ico, openDrawer, placeLenses, seg, shortPeriod } from "./pci.js";
 import { changeText, el, es, extLink, isNum, labelTag, periodLabel, ruleText, sourcesLine, stateTag, svgEl, unitOf } from "./ui.js";
 
 const ALERT_COLORS = ["#b4545b", "#1a4d7a", "#5d6d1f", "#86bfc6", "#c08a2d", "#4d5a6a", "#d0878c", "#2e7d76"];
-const PLURAL = { empeora: ["empeora", "empeoran"], mejora: ["mejora", "mejoran"], estable: ["estable", "estables"], cambia: ["cambia", "cambian"], primer_dato: ["sin dato anterior", "sin dato anterior"] };
-const ESTADOS = ["empeora", "cambia", "estable", "mejora", "primer_dato"]; // de más a menos urgente
 const FIRST = 8; // municipios de la lista antes de «Ver todos»
 const keys = (store) => store.catalogo.indicadores.filter((i) => i.clave);
-const countText = (n, state) => `${n} ${PLURAL[state]?.[n === 1 ? 0 : 1] ?? state}`;
 const firstSentence = (t = "") => t.split(/(?<=\.)\s+(?=[A-ZÁÉÍÓÚ])/)[0];
 
 /** Capas del 3D: 0 relieve de población, 1 todas las alertas, 2+ una por tipo (igual que el original). */
@@ -68,17 +66,8 @@ export function renderSituacion(root, store, ctx) {
   const color = (t) => ALERT_COLORS[types.indexOf(t) % ALERT_COLORS.length];
   const S = { tipo: "", vista: "plano", sel: null, all: false };
   const body = root.querySelector("[data-cuerpo]");
-  const byState = ks.reduce((n, k) => ({ ...n, [k.actual.estado]: (n[k.actual.estado] ?? 0) + 1 }), {});
 
   // ---------- 1. isla oscura: cómo están los 12 indicadores ----------
-  const strip = el("div", { class: "estatus-barra", role: "group", "aria-label": "Los indicadores clave, uno por segmento, de más a menos urgente" },
-    ESTADOS.flatMap((st) => ks.filter((k) => k.actual.estado === st)).map((k) => {
-      const b = el("button", { type: "button", class: `est st-${k.actual.estado}`, "aria-label": `${k.nombre}: ${estados[k.actual.estado]}`, title: `${k.nombre} · ${estados[k.actual.estado]}` });
-      b.addEventListener("click", () => drawer(k));
-      return b;
-    }));
-  const legendEstados = el("ul", { class: "estatus-leyenda" }, ESTADOS.filter((st) => byState[st]).map((st) =>
-    el("li", {}, [el("i", { class: `dot st-${st}`, "aria-hidden": "true" }), countText(byState[st], st)])));
   const kb = el("div", { class: "keybox bg-flow1 ink rise", style: "--i:1" }, [el("div", { class: "kb-grid" }, [
     el("div", { class: "kb-lead" }, [
       el("div", { class: "lab", text: "Indicadores clave" }),
@@ -87,11 +76,7 @@ export function renderSituacion(root, store, ctx) {
       el("div", { class: "second" }, [el("span", { class: "num", text: es(G[""].n) }),
         el("span", {}, [`de ${es(total)} ${unit.varias} tienen alguna alerta. ${es(G[""].grave)} con alguna alerta grave. `, el("a", { class: "go", href: "#situacion/alertas" }, ["Ver el mapa", ico("i-arrow")])])]),
     ]),
-    el("div", { class: "estatus glass-kpi lg" }, [
-      el("div", { class: "lab", text: `Los ${ks.length} indicadores clave, de más a menos urgente` }),
-      strip, legendEstados,
-      el("p", { class: "sub", text: "Cada segmento es un indicador: elige uno para ver su serie." }),
-    ]),
+    estatusPanel({ ks, estados, onPick: (k) => drawer(k), lab: `Los ${ks.length} indicadores clave, de más a menos urgente`, sub: "Cada segmento es un indicador: elige uno para ver su serie." }),
   ])]);
 
   // ---------- 2. tablero de indicadores ----------

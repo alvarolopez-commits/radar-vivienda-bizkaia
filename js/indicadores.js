@@ -5,12 +5,12 @@
 import { announce } from "./comun.js";
 import { lineChart, stripChart } from "./graficos.js";
 import { colorOf, quintiles, scaleLegend, svgMap } from "./mapa.js";
+import { estatusPanel } from "./estatus.js";
 import { fieldPill, placeLenses, seg, shortPeriod } from "./pci.js";
 import { LABELS, capital, changeText, csv, download, el, es, isNum, labelTag, periodLabel, ruleText, sourcesLine, stateTag, unitOf } from "./ui.js";
 
 const lastOf = (ind) => [...ind.serie].reverse().find(([, v]) => isNum(v)) ?? null;
 const fmtOf = (ind) => (v) => `${es(v, ind.decimales)} ${unitOf(ind.unidad)}`;
-const PLURAL = { empeora: "Empeoran", mejora: "Mejoran", estable: "Estables", cambia: "Cambian", primer_dato: "Sin dato anterior" };
 
 /** Una tabla plegada con los mismos datos que un gráfico o un mapa: se lee sin verlo y la encuentra el lector de pantalla. */
 function dataTable(summary, head, rows) {
@@ -19,8 +19,6 @@ function dataTable(summary, head, rows) {
     el("tbody", {}, rows.map(([a, b]) => el("tr", {}, [el("td", { text: a }), el("td", { class: "num", text: b })]))),
   ])])]);
 }
-
-const tile = (lab, val, sub) => el("div", { class: "tile glass-kpi lg" }, [el("div", { class: "lab", text: lab }), el("div", { class: "val" }, val), sub ? el("div", { class: "sub", text: sub }) : null]);
 
 export function renderIndicadores(root, store, ctx) {
   const body = root.querySelector("[data-cuerpo]");
@@ -53,8 +51,7 @@ export function renderIndicadores(root, store, ctx) {
         el("div", { class: "lab", text: "Catálogo de indicadores" }), el("div", { class: "hero-num", text: es(all.length) }),
         el("div", { class: "sub", text: `${keyN} clave con semáforo y ${all.length - keyN} de contexto, cada uno con su ficha.` }),
         el("div", { class: "second" }, [el("span", { class: "num", text: `${by.empeora ?? 0} de ${keyN}` }), el("span", { text: "indicadores clave empeoran frente a su periodo anterior" })])]),
-      el("div", { class: "tiles" }, ["empeora", "mejora", "estable", "primer_dato"].map((s) =>
-        tile(PLURAL[s], [el("i", { class: `dot st-${s}` }), es(by[s] ?? 0)], "indicadores clave"))),
+      estatusPanel({ ks, estados: store.catalogo.estados, onPick: (k) => { location.hash = `#indicadores/${k.id}`; }, lab: `Los ${keyN} indicadores clave, de más a menos urgente`, sub: "Cada segmento es un indicador: elige uno para abrir su ficha." }),
     ])]),
     el("div", { class: "card rise", style: "--i:2" }, [
       el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { text: "Catálogo de indicadores" }), count])]),
@@ -70,7 +67,7 @@ export function renderIndicadores(root, store, ctx) {
     return el("section", { class: "card rise", style: "--i:2", "aria-labelledby": "f-serie" }, [
       el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { id: "f-serie", text: `En el tiempo · ${ind.ambito}` })])]),
       el("div", { class: "panel-b" }, [
-        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 230, etiqueta: `Serie de ${ind.nombre} en ${ind.ambito}`, xLabel: shortPeriod,
+        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 240, etiqueta: `Serie de ${ind.nombre} en ${ind.ambito}`, xLabel: shortPeriod,
           fmtTip: fmtOf(ind), fmt: (v) => es(v, ind.decimales), umbral: t ? { ...t, corto: `${t.tipo === "meta" ? "Meta" : "Umbral"}: ${es(t.valor)}` } : null })
           : el("p", { class: "note", text: xs.length ? `Un solo dato publicado (${periodLabel(xs[0])}): la serie empezará con el próximo.` : "Sin serie para el conjunto del territorio." }),
         xs.length > 1 ? dataTable("Ver la serie en una tabla", ["Periodo", ind.nombre], ind.serie.map(([p, v]) => [periodLabel(p), isNum(v) ? fmtOf(ind)(v) : "sin dato"])) : null,
@@ -79,12 +76,12 @@ export function renderIndicadores(root, store, ctx) {
   };
   const aboutCard = (ind) => {
     const map = ind.mapa ? store.ind[ind.mapa] : null, th = ind.umbral ?? map?.umbral, cal = ind.clave ? store.calendar[ind.calendario] : null;
-    const rows = [["Ámbito", ind.ambito], ["Tipo de dato", LABELS[ind.etiqueta]], ind.clave ? ["Regla del semáforo", ruleText(ind)] : null,
-      th ? [th.tipo === "meta" ? "Meta" : "Umbral", th.texto] : null, cal ? ["Frecuencia", `${cal.periodicidad}. Último publicado: ${cal.ultimo}.`] : null,
+    // la regla del semáforo, el tipo de dato y el próximo dato ya están en la isla («De un vistazo»), junto a la serie
+    const rows = [["Ámbito", ind.ambito], th ? [th.tipo === "meta" ? "Meta" : "Umbral", th.texto] : null, cal ? ["Frecuencia", `${cal.periodicidad}. Último publicado: ${cal.ultimo}.`] : null,
       ["Cómo se calcula", ind.como_se_calcula], ["Cómo leerlo", ind.como_leer], ["Cuando no hay dato", ind.sin_dato], ["Nota", ind.nota]].filter((r) => r && r[1]);
     return el("section", { class: "card rise", style: "--i:3", "aria-labelledby": "f-sobre" }, [
       el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { id: "f-sobre", text: "Cómo se mide" })])]),
-      el("div", { class: "panel-b" }, [el("dl", { class: "kv ficha-kv" }, rows.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })])), sourcesLine(ind.fuentes)]),
+      el("div", { class: "panel-b" }, [el("dl", { class: "ficha-kv" }, rows.map(([k, v]) => el("div", { class: "fila" }, [el("dt", { text: k }), el("dd", { text: v })]))), sourcesLine(ind.fuentes)]),
     ]);
   };
   const municipalCard = (ind) => {
@@ -136,11 +133,13 @@ export function renderIndicadores(root, store, ctx) {
           el("div", { class: "hero-num" }, value ? [value[0], el("small", { class: "hero-unit", text: ` ${value[1]}` })] : [el("span", { class: "na", text: "sin dato" })]),
           el("div", { class: "sub", text: value ? value[2] : "" }),
           x ? el("div", { class: "second" }, [stateTag(x.estado, store.catalogo.estados[x.estado]), el("span", { text: changeText(ind) })]) : null]),
-        el("div", { class: "tiles" }, [
-          tile("Tipo de dato", [LABELS[ind.etiqueta] ?? ind.etiqueta], ind.clave ? "Indicador clave" : "Indicador de contexto"),
-          tile("Próximo dato", [cal?.proxima ?? "sin fecha"], cal ? cal.periodicidad : ""),
-          tile(`${capital(store.territorio.unidad.varias)} con dato`, m ? [es(nMuni), el("small", { class: "tile-unit", text: ` de ${Object.keys(store.territorio.municipios).length}` })] : ["sin dato"], m ? periodLabel(m.periodos.at(-1)) : `La fuente solo lo publica para ${ind.ambito}`),
-          tile("Dimensión", [store.dims[ind.dimension]?.nombre ?? ""], store.dims[ind.dimension]?.pregunta),
+        el("div", { class: "hechos glass-kpi lg", "data-nuevo": "" }, [el("div", { class: "lab", text: "De un vistazo" }),
+          el("dl", { class: "hechos-lista" }, [
+            x ? ["Regla del semáforo", ruleText(ind)] : null,
+            cal ? ["Próximo dato", `${cal.proxima} (${cal.periodicidad.toLowerCase()})`] : null,
+            ["Tipo de dato", `${LABELS[ind.etiqueta] ?? ind.etiqueta} · ${ind.clave ? "indicador clave" : "indicador de contexto"}`],
+            [`${capital(store.territorio.unidad.varias)} con dato`, m ? `${es(nMuni)} de ${Object.keys(store.territorio.municipios).length} · ${periodLabel(m.periodos.at(-1))}` : `La fuente solo lo publica para ${ind.ambito}`],
+          ].filter(Boolean).map(([k, v]) => el("div", { class: "fila" }, [el("dt", { text: k }), el("dd", { text: v })]))),
         ]),
       ])]),
       el("div", { class: "ficha-rejilla" }, [seriesCard(ind), aboutCard(ind)]),
