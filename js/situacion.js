@@ -1,16 +1,18 @@
 // Situación del Radar en el lenguaje del dashboard PCI. Los datos, las reglas y los textos son los del Radar publicado
 // (alertas.json, catalogo.json); la lógica de capas del mapa 3D (alertLayers) y de recuento viene de situacion.js original
-// (_origen/situacion.js). Cambia cómo se presenta: una isla oscura con los cuatro tipos de alerta como selectores, el mapa y
-// la lista de municipios en un solo panel, y el cuadro de mando de los 12 indicadores clave, con el detalle en un cajón.
+// (_origen/situacion.js). Cambia cómo se presenta, en este orden: 1) cómo están los 12 indicadores clave (isla oscura con
+// una barra de estado y el tablero de indicadores, con su cambio y su mini serie), 2) dónde están las alertas (mapa y
+// lista de municipios, con el tipo de alerta como filtro junto al mapa). El detalle de un indicador abre en un cajón.
 import { announce, reduced } from "./comun.js";
 import { lineChart } from "./graficos.js";
 import { NODATA, svgMap } from "./mapa.js";
 import { newState, territory3d } from "./territorio3d.js";
-import { fieldPill, ico, openDrawer, placeLenses, seg, shortPeriod } from "./pci.js";
-import { changeText, el, es, extLink, isNum, labelTag, periodLabel, ruleText, sourcesLine, stateTag, unitOf } from "./ui.js";
+import { ico, openDrawer, placeLenses, seg, shortPeriod } from "./pci.js";
+import { changeText, el, es, extLink, isNum, labelTag, periodLabel, ruleText, sourcesLine, stateTag, svgEl, unitOf } from "./ui.js";
 
 const ALERT_COLORS = ["#b4545b", "#1a4d7a", "#5d6d1f", "#86bfc6", "#c08a2d", "#4d5a6a", "#d0878c", "#2e7d76"];
 const PLURAL = { empeora: ["empeora", "empeoran"], mejora: ["mejora", "mejoran"], estable: ["estable", "estables"], cambia: ["cambia", "cambian"], primer_dato: ["sin dato anterior", "sin dato anterior"] };
+const ESTADOS = ["empeora", "cambia", "estable", "mejora", "primer_dato"]; // de más a menos urgente
 const FIRST = 8; // municipios de la lista antes de «Ver todos»
 const keys = (store) => store.catalogo.indicadores.filter((i) => i.clave);
 const countText = (n, state) => `${n} ${PLURAL[state]?.[n === 1 ? 0 : 1] ?? state}`;
@@ -32,9 +34,7 @@ function alertLayers(store) {
   ];
 }
 
-const names = (store, codes, n = 4) => codes.slice(0, n).map((c) => store.name(c)).join(", ") + (codes.length > n ? ` y ${codes.length - n} más` : "");
-
-/** Los datos de cada paso del original (todas / una por tipo): cuántos municipios, cuáles y cuántos graves. */
+/** Cuántos municipios y cuáles tiene cada filtro (todas / un tipo) y cuántos con alerta grave. */
 function groups(store) {
   const a = store.alertas, types = Object.keys(a.tipos);
   const all = Object.keys(a.municipios).sort((x, y) => a.municipios[y].length - a.municipios[x].length);
@@ -48,40 +48,100 @@ function groups(store) {
   return out;
 }
 
+/** Mini serie de un indicador: los últimos 12 datos y un punto final del color del estado. null si hay un solo dato. */
+function spark(ind) {
+  const pts = ind.serie.map(([, v]) => v).filter(isNum).slice(-12);
+  if (pts.length < 2) return null;
+  const W = 84, H = 26, pad = 4, lo = Math.min(...pts), hi = Math.max(...pts), span = hi - lo || 1;
+  const x = (i) => pad + (i * (W - 2 * pad)) / (pts.length - 1), y = (v) => H - pad - ((v - lo) * (H - 2 * pad)) / span;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "spark", "aria-hidden": "true", focusable: "false" });
+  svg.append(svgEl("path", { d: `M${pts.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("L")}`, class: "spark-linea" }));
+  svg.append(svgEl("circle", { cx: x(pts.length - 1), cy: y(pts.at(-1)), r: 2.8, class: `spark-punto st-${ind.actual.estado}` }));
+  return svg;
+}
+
 export function renderSituacion(root, store, ctx) {
   const a = store.alertas, types = Object.keys(a.tipos), unit = store.territorio.unidad;
-  const G = groups(store), layers = alertLayers(store), ks = keys(store);
+  const G = groups(store), layers = alertLayers(store), ks = keys(store), estados = store.catalogo.estados;
   const worse = ks.filter((k) => k.actual.estado === "empeora").length;
   const total = Object.keys(store.territorio.municipios).length;
   const color = (t) => ALERT_COLORS[types.indexOf(t) % ALERT_COLORS.length];
   const S = { tipo: "", vista: "plano", sel: null, all: false };
   const body = root.querySelector("[data-cuerpo]");
+  const byState = ks.reduce((n, k) => ({ ...n, [k.actual.estado]: (n[k.actual.estado] ?? 0) + 1 }), {});
 
-  // ---------- isla oscura ----------
-  const kb = el("div", { class: "keybox bg-flow1 ink rise", style: "--i:1", "aria-live": "polite" });
-  const tiles = types.map((t) => {
-    const b = el("button", { type: "button", class: "tile glass-kpi lg", "aria-pressed": "false", "data-t": t, "data-nuevo": "" }, [
-      el("span", { class: "lab" }, [el("i", { class: "dot", style: `background:${color(t)}` }), a.tipos[t]]),
-      el("span", { class: "val", text: es(G[t].n) }),
-      el("span", { class: "sub", text: G[t].n ? names(store, G[t].codes, 2) : "Ninguno." }),
+  // ---------- 1. isla oscura: cómo están los 12 indicadores ----------
+  const strip = el("div", { class: "estatus-barra", role: "group", "aria-label": "Los indicadores clave, uno por segmento, de más a menos urgente" },
+    ESTADOS.flatMap((st) => ks.filter((k) => k.actual.estado === st)).map((k) => {
+      const b = el("button", { type: "button", class: `est st-${k.actual.estado}`, "aria-label": `${k.nombre}: ${estados[k.actual.estado]}`, title: `${k.nombre} · ${estados[k.actual.estado]}` });
+      b.addEventListener("click", () => drawer(k));
+      return b;
+    }));
+  const legendEstados = el("ul", { class: "estatus-leyenda" }, ESTADOS.filter((st) => byState[st]).map((st) =>
+    el("li", {}, [el("i", { class: `dot st-${st}`, "aria-hidden": "true" }), countText(byState[st], st)])));
+  const kb = el("div", { class: "keybox bg-flow1 ink rise", style: "--i:1" }, [el("div", { class: "kb-grid" }, [
+    el("div", { class: "kb-lead" }, [
+      el("div", { class: "lab", text: "Indicadores clave" }),
+      el("div", { class: "hero-num", text: `${worse} de ${ks.length}` }),
+      el("div", { class: "sub", text: "indicadores clave empeoran frente a su periodo anterior." }),
+      el("div", { class: "second" }, [el("span", { class: "num", text: es(G[""].n) }),
+        el("span", {}, [`de ${es(total)} ${unit.varias} tienen alguna alerta. ${es(G[""].grave)} con alguna alerta grave. `, el("a", { class: "go", href: "#situacion/alertas" }, ["Ver el mapa", ico("i-arrow")])])]),
+    ]),
+    el("div", { class: "estatus glass-kpi lg" }, [
+      el("div", { class: "lab", text: `Los ${ks.length} indicadores clave, de más a menos urgente` }),
+      strip, legendEstados,
+      el("p", { class: "sub", text: "Cada segmento es un indicador: elige uno para ver su serie." }),
+    ]),
+  ])]);
+
+  // ---------- 2. tablero de indicadores ----------
+  const row = (ind) => {
+    const x = ind.actual, num = isNum(x.cambio), arrow = num ? (x.cambio > 0 ? "↑" : x.cambio < 0 ? "↓" : "→") : "";
+    const b = el("button", { type: "button", class: "linea", "data-id": ind.id }, [
+      el("span", { class: "linea-nombre", text: ind.nombre }),
+      el("span", { class: `linea-cambio st-${x.estado}` }, num
+        ? [el("span", { class: "solo-lectores", text: `${estados[x.estado]}. ` }), el("span", { "aria-hidden": "true", class: "flecha", text: arrow }), changeText(ind)]
+        : [`${estados[x.estado]} · ${periodLabel(x.periodo)}`]),
+      el("span", { class: "linea-cifra" }, [el("b", { text: es(x.valor, ind.decimales) }), el("small", { text: ` ${unitOf(ind.unidad)}` })]),
+      spark(ind) ?? el("span", { class: "spark vacio" }),
     ]);
-    b.addEventListener("click", () => pickType(S.tipo === t ? "" : t, true));
+    b.addEventListener("click", () => drawer(ind));
     return b;
-  });
-  function paintKeybox() {
-    const g = G[S.tipo];
-    const lead = S.tipo
-      ? [el("div", { class: "lab", text: a.tipos[S.tipo] }), el("div", { class: "hero-num tick", text: es(g.n) }),
-        el("div", { class: "sub", text: `${g.n === 1 ? unit.una : unit.varias} con esta alerta. ${firstSentence(a.explicaciones?.[S.tipo])}` }),
-        el("div", { class: "second" }, [el("span", { class: "num", text: es(g.grave) }), el("span", { text: "con alerta grave" })])]
-      : [el("div", { class: "lab", text: `Alertas por ${unit.una} · datos de ${periodLabel(a.fecha)}` }), el("div", { class: "hero-num tick", text: es(g.n) }),
-        el("div", { class: "sub", text: `${unit.varias} de ${es(total)} tienen alguna alerta. ${es(g.grave)} con alguna alerta grave.` }),
-        el("div", { class: "second" }, [el("span", { class: "num", text: `${worse} de ${ks.length}` }), el("span", { text: "indicadores clave empeoran frente a su periodo anterior" })])];
-    kb.replaceChildren(el("div", { class: "kb-grid" }, [el("div", { class: "kb-lead" }, lead), el("div", { class: "tiles" }, tiles)]));
-    tiles.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.t === S.tipo)));
+  };
+  const board = el("div", { class: "tablero" }, store.catalogo.dimensiones.map((d) => {
+    const list2 = ks.filter((k) => k.dimension === d.id);
+    if (!list2.length) return null;
+    const by = list2.reduce((n, k) => ({ ...n, [k.actual.estado]: (n[k.actual.estado] ?? 0) + 1 }), {});
+    return el("section", { class: "grupo", "aria-labelledby": `dim-${d.id}` }, [
+      el("header", { class: "grupo-cab" }, [el("h3", { id: `dim-${d.id}`, text: d.nombre }), el("p", { class: "grupo-q", text: d.pregunta }),
+        el("p", { class: "grupo-estados" }, ESTADOS.filter((st) => by[st]).flatMap((st, i) => [i ? " · " : "", el("span", { class: `st-${st}`, text: countText(by[st], st) })]))]),
+      el("div", { class: "lineas" }, list2.map(row)),
+    ]);
+  }));
+
+  function drawer(ind) {
+    const x = ind.actual, cal = store.calendar[ind.calendario], map = ind.mapa ? store.ind[ind.mapa] : null;
+    const th = ind.umbral ?? null, xs = ind.serie.map(([p]) => p);
+    const kv = [["Regla", ruleText(ind)], th ? [th.tipo === "meta" ? "Meta" : "Umbral", th.texto] : map?.umbral ? ["Umbral en cada municipio", map.umbral.texto] : null,
+      cal ? ["Próximo dato", `${cal.proxima} (${cal.periodicidad.toLowerCase()})`] : null].filter(Boolean);
+    openDrawer({
+      label: ind.nombre,
+      top: { head: [el("div", { class: "who", text: store.dims[ind.dimension]?.nombre ?? "" }), el("h3", { text: ind.nombre })],
+        rest: [el("div", { class: "price" }, [es(x.valor, ind.decimales), el("small", { text: ` ${unitOf(ind.unidad)}` })]),
+          el("div", { class: "price-note" }, [`${periodLabel(x.periodo)} · ${ind.ambito} `, stateTag(x.estado, estados[x.estado])])] },
+      body: [
+        el("div", {}, [labelTag(ind.etiqueta)]),
+        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 200, etiqueta: `Serie de ${ind.nombre}`, xLabel: shortPeriod,
+          fmtTip: (v) => `${es(v, ind.decimales)} ${unitOf(ind.unidad)}`, umbral: th ? { ...th, corto: th.tipo === "meta" ? `Meta: ${es(th.valor)}` : `Umbral: ${es(th.valor)}` } : null })
+          : el("p", { class: "note", text: "Solo hay un dato publicado: la serie empezará con el próximo." }),
+        el("dl", { class: "kv" }, kv.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })])),
+        sourcesLine(ind.fuentes),
+        el("a", { class: "btn primary", href: `#indicadores/${ind.id}`, text: "Ver la ficha del indicador" }),
+      ],
+    });
   }
 
-  // ---------- mapa ----------
+  // ---------- 3. territorio: mapa y lista de municipios ----------
   const host3d = el("div", { class: "terr", hidden: true }), hostFlat = el("div", { class: "plano" });
   const flat = svgMap(store.geo, { paint: () => NODATA, label: `Mapa de los ${unit.varias} con alertas`,
     tip: (c) => { const l = (a.municipios[c] ?? []).filter((x) => !S.tipo || x.tipo === S.tipo); return { title: store.name(c), lines: l.length ? l.map((x) => x.texto) : ["Sin alertas"] }; } });
@@ -89,7 +149,7 @@ export function renderSituacion(root, store, ctx) {
   flat.svg.querySelectorAll("path").forEach((p) => p.addEventListener("click", () => select(p.dataset.code, true)));
   const state = newState(layers);
   state.w.fill(0); state.w[1] = 1; state.cam = 0.85;
-  let ok3d = null;
+  let ok3d = null, mounted = false;
   const paintFlat = () => {
     flat.repaint((c) => {
       const l = (a.municipios[c] ?? []).filter((x) => !S.tipo || x.tipo === S.tipo);
@@ -111,8 +171,8 @@ export function renderSituacion(root, store, ctx) {
     };
     anim = requestAnimationFrame(step);
   };
+  const mapNote = el("p", { class: "map-note" });
   // El 3D (Three.js, 670 kB) se monta la primera vez que se pide, como en el Radar publicado; hasta entonces se ve el plano.
-  let mounted = false;
   const fallback = () => { ok3d = false; S.vista = "plano"; vistaSeg.set("plano"); vistaSeg.querySelector('[data-v="3d"]').disabled = true; showView(); };
   const mount3d = () => {
     if (mounted) return;
@@ -126,13 +186,17 @@ export function renderSituacion(root, store, ctx) {
     mapNote.textContent = S.vista === "3d" && ok3d !== true ? "Cargando el mapa 3D…" : three ? "En 3D, la altura y el color dicen lo mismo que el mapa plano. Elige el municipio en la lista." : "Toca un municipio del mapa o elígelo en la lista.";
   };
   const vistaSeg = seg("Vista del mapa", [["plano", "Plano"], ["3d", "3D"]], S.vista, (v) => { S.vista = v; showView(); });
-  vistaSeg.setAttribute("data-nuevo", "");
-  const legend = el("ul", { class: "ramp leyenda-alertas", "aria-label": "Tipos de alerta" }, types.map((t) =>
-    el("li", {}, [el("i", { class: "dot", style: `background:${color(t)}`, "aria-hidden": "true" }), a.tipos[t]])));
-  const mapNote = el("p", { class: "map-note" });
   host3d.addEventListener("sin3d", fallback);
 
-  // ---------- lista de municipios ----------
+  // filtro por tipo de alerta: junto al mapa, y sus puntos de color hacen de leyenda
+  const chips = ["", ...types].map((t) => {
+    const b = el("button", { type: "button", class: "chipf", "data-t": t, "aria-pressed": String(t === S.tipo) }, [
+      t ? el("i", { class: "dot", style: `background:${color(t)}`, "aria-hidden": "true" }) : null, t ? a.tipos[t] : "Todas", el("span", { class: "n", text: es(G[t].n) })]);
+    b.addEventListener("click", () => pickType(S.tipo === t ? "" : t, true));
+    return b;
+  });
+  const tipoNota = el("p", { class: "tipo-nota" });
+
   const list = el("div", { class: "rank-list muni", "aria-label": `${unit.varias} con alertas` });
   const pager = el("button", { type: "button", class: "btn pager-btn" });
   const count = el("p", { class: "rank-count", "aria-live": "polite" });
@@ -151,7 +215,7 @@ export function renderSituacion(root, store, ctx) {
         el("span", { class: "code" }, [el("i", { class: "dot", style: `background:${color(g.tipo)}` })]),
         el("span", { class: "name", text: store.name(c) }),
         el("span", { class: "bar-track" }, [el("span", { class: "liquid", style: `width:${(l.length / max) * 100}%` })]),
-        // un punto por alerta, del color de su tipo; con anillo si es grave (antes: la palabra «Grave», repetida en casi todas las filas)
+        // un punto por alerta, del color de su tipo; con anillo si es grave
         el("span", { class: "v dots", role: "img", "aria-label": `${l.length} ${l.length === 1 ? "alerta" : "alertas"}${grave ? ", alguna grave" : ""}` },
           l.map((x) => el("i", { class: `dot${x.grave ? " grave" : ""}`, style: `background:${color(x.tipo)}` }))),
       ]);
@@ -182,7 +246,12 @@ export function renderSituacion(root, store, ctx) {
     paintList(); paintDetail(); paintFlat();
     if (S.sel) announce(`${store.name(S.sel)}: ${(a.municipios[S.sel] ?? []).length} alertas`, 200);
   }
-  function syncType() { paintKeybox(); layerTo(S.tipo); paintFlat(); paintList(); ctx.tipoPill?.set(S.tipo); }
+  function syncType() {
+    chips.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.t === S.tipo)));
+    tipoNota.textContent = S.tipo ? `${firstSentence(a.explicaciones?.[S.tipo])}${G[S.tipo].grave ? ` ${es(G[S.tipo].grave)} con alerta grave.` : ""}` : "";
+    tipoNota.hidden = !S.tipo;
+    layerTo(S.tipo); paintFlat(); paintList();
+  }
   function pickType(t, user) {
     S.tipo = t; S.all = false;
     if (S.sel && t && !G[t].codes.includes(S.sel)) S.sel = null;
@@ -190,73 +259,29 @@ export function renderSituacion(root, store, ctx) {
     if (user) announce(count.textContent, 200);
   }
 
-  // ---------- cuadro de mando: 12 indicadores clave ----------
-  const kpi = (ind) => {
-    const x = ind.actual;
-    const b = el("button", { type: "button", class: "kpi-row", "data-id": ind.id }, [
-      el("span", { class: "kpi-nombre", text: ind.nombre }),
-      el("span", { class: "kpi-cifra" }, [el("b", { text: es(x.valor, ind.decimales) }), el("small", { text: ` ${unitOf(ind.unidad)}` })]),
-      el("span", { class: "kpi-pie" }, [stateTag(x.estado, store.catalogo.estados[x.estado]), el("span", { class: "kpi-cambio", text: isNum(x.cambio) ? changeText(ind) : periodLabel(x.periodo) })]),
-    ]);
-    b.addEventListener("click", () => drawer(ind));
-    return b;
-  };
-  function drawer(ind) {
-    const x = ind.actual, cal = store.calendar[ind.calendario], map = ind.mapa ? store.ind[ind.mapa] : null;
-    const th = ind.umbral ?? null, xs = ind.serie.map(([p]) => p);
-    const kv = [["Regla", ruleText(ind)], th ? [th.tipo === "meta" ? "Meta" : "Umbral", th.texto] : map?.umbral ? ["Umbral en cada municipio", map.umbral.texto] : null,
-      cal ? ["Próximo dato", `${cal.proxima} (${cal.periodicidad.toLowerCase()})`] : null].filter(Boolean);
-    openDrawer({
-      label: ind.nombre,
-      top: { head: [el("div", { class: "who", text: store.dims[ind.dimension]?.nombre ?? "" }), el("h3", { text: ind.nombre })],
-        rest: [el("div", { class: "price" }, [es(x.valor, ind.decimales), el("small", { text: ` ${unitOf(ind.unidad)}` })]),
-          el("div", { class: "price-note" }, [`${periodLabel(x.periodo)} · ${ind.ambito} `, stateTag(x.estado, store.catalogo.estados[x.estado])])] },
-      body: [
-        el("div", {}, [labelTag(ind.etiqueta)]),
-        xs.length > 1 ? lineChart({ xs, series: [{ nombre: ind.nombre, valores: ind.serie.map(([, v]) => v) }], alto: 200, etiqueta: `Serie de ${ind.nombre}`, xLabel: shortPeriod,
-          fmtTip: (v) => `${es(v, ind.decimales)} ${unitOf(ind.unidad)}`, umbral: th ? { ...th, corto: th.tipo === "meta" ? `Meta: ${es(th.valor)}` : `Umbral: ${es(th.valor)}` } : null })
-          : el("p", { class: "note", text: "Solo hay un dato publicado: la serie empezará con el próximo." }),
-        el("dl", { class: "kv" }, kv.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })])),
-        sourcesLine(ind.fuentes),
-        el("a", { class: "btn primary", href: `#indicadores/${ind.id}`, text: "Ver la ficha del indicador" }),
-      ],
-    });
-  }
-  const dims = el("div", { class: "dims" }, store.catalogo.dimensiones.map((d) => {
-    const list2 = ks.filter((k) => k.dimension === d.id);
-    if (!list2.length) return null;
-    const by = list2.reduce((n, k) => ({ ...n, [k.actual.estado]: (n[k.actual.estado] ?? 0) + 1 }), {});
-    return el("section", { class: "card cell dim rise", "aria-labelledby": `dim-${d.id}` }, [
-      el("header", {}, [el("h3", { id: `dim-${d.id}`, text: d.nombre }), el("p", { class: "dim-q", text: d.pregunta }),
-        el("div", { class: "dim-estados" }, Object.entries(by).map(([st, n]) => stateTag(st, countText(n, st))))]),
-      el("div", { class: "kpi-rows" }, list2.map(kpi)),
-    ]);
-  }));
-
-  // ---------- montaje ----------
+  // ---------- montaje: 1) indicadores, 2) territorio ----------
   const finding = [`${worse} de ${ks.length} indicadores clave empeoran`, " frente a su periodo anterior. ", `${G[""].n} de ${total} ${unit.varias}`, " tienen alguna alerta."];
   body.replaceChildren(
     kb,
-    el("div", { class: "card atlas-card rise", style: "--i:2" }, [el("div", { class: "atlas" }, [
+    el("section", { class: "card tablero-card rise", style: "--i:2", "aria-labelledby": "s-mando" }, [
+      el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { id: "s-mando", text: `Los ${ks.length} indicadores clave` }), el("p", { text: "Elige uno para ver su serie, su regla y su próximo dato." })])]),
+      el("div", { class: "panel-b" }, [board]),
+    ]),
+    el("section", { class: "card atlas-card rise", style: "--i:3", "aria-labelledby": "s-alertas" }, [el("div", { class: "atlas" }, [
       el("div", {}, [
         el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { id: "s-alertas", text: `Alertas por ${unit.una}` }), el("p", { text: `Datos de ${periodLabel(a.fecha)}.` })]), vistaSeg]),
-        el("div", { class: "map-wrap" }, [host3d, hostFlat, legend, mapNote]),
+        el("div", { class: "chips-tipo", role: "group", "aria-label": "Tipo de alerta" }, chips), tipoNota,
+        el("div", { class: "map-wrap" }, [host3d, hostFlat, mapNote]),
       ]),
-      el("div", { class: "rank" }, [count, el("p", { class: "rank-leyenda", text: "Cada punto es una alerta, del color de su tipo. El punto con anillo es una alerta grave.", "data-nuevo": "" }), list, el("div", { class: "pager" }, [pager]), detail]),
+      el("div", { class: "rank" }, [count, el("p", { class: "rank-leyenda", text: "Cada punto es una alerta, del color de su tipo. El punto con anillo es una alerta grave." }), list, el("div", { class: "pager" }, [pager]), detail]),
     ])]),
-    el("div", { class: "card dash rise", style: "--i:3" }, [
-      el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { text: `Los ${ks.length} indicadores clave` }), el("p", { text: "Elige uno para ver su serie, su regla y su próximo dato." })])]),
-      el("div", { class: "panel-b" }, [dims]),
-    ]),
   );
-  paintKeybox(); paintList(); paintDetail(); paintFlat(); showView();
+  vistaSeg.setAttribute("data-nuevo", ""); chips[0].parentElement.setAttribute("data-nuevo", ""); kb.setAttribute("data-nuevo", "");
+  syncType(); paintDetail(); showView();
 
   return {
     head: () => ({ sub: finding.join("") }),
-    bar() {
-      ctx.tipoPill = fieldPill("Tipo de alerta", "f-tipo", [["", "Todas"], ...types.map((t) => [t, `${a.tipos[t]} (${G[t].n})`])], S.tipo, (v) => pickType(v, true));
-      return [ctx.tipoPill];
-    },
+    bar: () => [],
     show(sub) { if (sub === "alertas") document.getElementById("s-alertas")?.scrollIntoView(); requestAnimationFrame(placeLenses); },
   };
 }
