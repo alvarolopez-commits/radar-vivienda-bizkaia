@@ -1,0 +1,409 @@
+/* Lo propio del Radar, encima de pci.css (copia literal de pci-dashboard, que no se edita).
+   Aquí solo hay: los gráficos y mapas del Radar publicado (clases .grafico, .escala…), las etiquetas de estado del semáforo,
+   y los componentes que PCI no tiene (lista de municipios con alertas, cuadro de indicadores, cajón de indicador). Todo sale
+   de los tokens --pci-* y de las escalas de radio y espacio de PCI. */
+
+:root {
+  /* tokens que usan los gráficos copiados del Radar publicado (graficos.js los lee con var(--…)) */
+  --faint: var(--pci-text-muted); --grid: var(--pci-gridline, #e8edf3); --edge: var(--pci-border-strong);
+  --chart-1: var(--pci-brand-blue); --chart-2: #b4545b; --chart-3: #86bfc6; --chart-muted: var(--pci-series-muted);
+  --peor: #a8464d; --mejor: #4f6b1c; --aviso: #7a5208;
+  --peor-bg: #f9e9ea; --mejor-bg: #ecf1e0; --neutro-bg: #edf0f4; --aviso-bg: #fff6e0;
+}
+.hoja { display: grid; gap: var(--space-zone); min-width: 0; }
+.hoja:focus { outline: none; }
+.hoja > * { min-width: 0; }
+.hoja .head { padding-top: 14px; }
+[data-cuerpo], .stack { display: contents; }
+.view { padding: 0; }
+.salto { position: absolute; left: 16px; top: -4rem; z-index: 50; background: var(--ink); color: #fff; padding: 10px 14px; border-radius: var(--r-pill); }
+.salto:focus { top: 12px; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.aviso { padding: 14px 18px; border-radius: var(--r-control); background: var(--aviso-bg); color: var(--aviso); }
+
+/* barra */
+.field-pill.search { padding: 0 14px 0 12px; }
+.field-pill.search input { border: 0; background: transparent; height: 38px; width: 210px; font-size: 14px; }
+.field-pill.search input:focus-visible { outline: none; }
+.field-pill.search:has(input:focus-visible) { box-shadow: 0 0 0 2px var(--accent); }
+.field-pill select { max-width: 260px; text-overflow: ellipsis; }
+.nav .tag { font-family: var(--font-data); }
+.nav .enlaces { display: contents; }
+.dock-fecha { font-size: 12px; color: var(--muted); white-space: normal; max-width: 180px; }
+
+/* botones */
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: var(--r-control); border: 1px solid var(--pci-border-strong); background: var(--pci-surface); color: var(--pci-text-primary); font-weight: 600; font-size: 14px; text-decoration: none; cursor: pointer; transition: background-color var(--t-fast), transform var(--t-fast) var(--ease-out); }
+.btn:hover { background: var(--pci-filter-hover); }
+.btn.primary { background: var(--pci-action); border-color: var(--pci-action); color: #fff; }
+.btn.primary:hover { background: var(--pci-action-hover); }
+
+/* etiquetas de estado del semáforo y de tipo de dato (mismos significados que el Radar publicado) */
+.estado { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--neutro-bg); color: var(--pci-text-secondary); }
+.estado::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.estado.empeora { background: var(--peor-bg); color: var(--peor); }
+.estado.mejora { background: var(--mejor-bg); color: var(--mejor); }
+.ink .estado { background: rgba(255, 255, 255, .12); color: var(--fg); }
+.ink .estado.empeora { background: rgba(255, 138, 146, .18); color: #ffb3b8; }
+.ink .estado.mejora { background: rgba(176, 214, 96, .18); color: #cfe79a; }
+.etiqueta { display: inline-block; padding: 1px 7px; border: 1px solid var(--pci-border-strong); border-radius: var(--r-inner); font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--pci-text-secondary); white-space: nowrap; }
+.etiqueta.clave { margin-left: 8px; color: var(--pci-action); border-color: color-mix(in srgb, var(--pci-action) 35%, transparent); }
+.dot.st-empeora { background: #ff8a92; } .dot.st-mejora { background: #b0d660; } .dot.st-estable { background: #8bcdff; } .dot.st-primer_dato { background: #8f9cc4; }
+.fuente { margin: 0; font-size: 14px; color: var(--muted); }
+.fuente a { color: var(--pci-action); }
+.note { margin: 0; }
+
+/* gráficos y mapas copiados del Radar publicado */
+.grafico { width: 100%; height: auto; overflow: visible; }
+.grafico text { font: 11px var(--font-ui); fill: var(--faint); font-variant-numeric: tabular-nums; }
+.grafico .rejilla { stroke: var(--grid); }
+.grafico .eje { stroke: var(--edge); }
+.grafico .linea { fill: none; stroke: var(--chart-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.grafico .franja { fill: var(--chart-1); opacity: .14; }
+.grafico .punto { fill: var(--chart-1); }
+.grafico .umbral { stroke: var(--peor); stroke-dasharray: 4 3; }
+.grafico .umbral-texto { fill: var(--peor); font-weight: 600; }
+.grafico .marca-tiempo { stroke: var(--ink); stroke-dasharray: 2 3; }
+.tip { opacity: 0; min-width: 0; padding: 8px 11px; font-size: 14px; line-height: 1.4; color: var(--on-ink); background: rgba(13, 21, 45, .96); border: 1px solid var(--glass-stroke-dark); animation: none; transition: opacity 120ms; top: 0; left: 0; }
+.tip.on { opacity: 1; }
+.tip strong { display: block; font: 600 14px var(--font-display); }
+.map-wrap svg path { cursor: pointer; transition: fill .45s var(--ease-out), opacity var(--t-base) var(--ease-out); stroke: #fff; stroke-width: .5; }
+.map-wrap svg path:hover { filter: brightness(1.1); stroke: var(--pci-text-primary); stroke-width: .8; }
+.map-wrap svg path.sel { stroke: var(--pci-text-primary); stroke-width: 1.6; }
+.map-wrap svg path[fill="#f1f3f6"] { fill: var(--land); }
+.escala { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 14px; margin-top: 10px; border-radius: var(--r-control); border: 1px solid var(--pci-border); background: var(--pci-surface); font: 500 12px/1 var(--font-data); color: var(--fg-2); }
+.escala-barra { display: inline-flex; width: 140px; height: 8px; border-radius: var(--r-bar); overflow: hidden; }
+.escala-barra span { flex: 1; }
+.escala-sin { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-ui); }
+.muestra { display: inline-block; width: 16px; height: 9px; border-radius: 3px; border: 1px solid var(--pci-border-strong); }
+.escala-sin .muestra { background: var(--land) !important; }
+
+/* las imágenes de fondo de pci.css se escribieron relativas a la raíz; aquí el CSS vive en css/ */
+.intro .beams { background-image: url(../assets/highbeam-reveal.webp); }
+.keybox.bg-flow1 { background-image: url(../assets/flow-01.webp); }
+.keybox.bg-flow2 { background-image: url(../assets/flow-02.webp); }
+.drawer-top { background-image: url(../assets/flow-02.webp); }
+
+/* isla oscura */
+.hero-num small, .hero-unit { font: 600 20px/1 var(--font-display); letter-spacing: 0; color: var(--fg-2); }
+.kb-lead .na, .hero-num .na { font-size: .6em; color: var(--fg-2); }
+.tile { text-align: left; font: inherit; color: var(--fg); }
+button.tile { cursor: pointer; transition: transform var(--t-base) var(--ease-out), border-color var(--t-fast), background-color var(--t-fast); }
+button.tile:hover { transform: translateY(-2px); border-color: rgba(139, 205, 255, .45); }
+button.tile[aria-pressed="true"] { border-color: rgba(139, 205, 255, .7); box-shadow: 0 8px 20px rgba(3, 8, 25, .2), inset 0 0 0 1px rgba(139, 205, 255, .45), inset 0 1px rgba(255, 255, 255, .1); }
+.tile .lab { display: flex; align-items: center; gap: 8px; }
+.tile .val { display: flex; align-items: baseline; gap: 8px; }
+.tile .val .dot { align-self: center; margin: 0; }
+.tile-unit { font: 500 14px var(--font-ui); color: var(--fg-2); }
+.tile .sub { overflow: hidden; text-overflow: ellipsis; }
+.kb-lead .sub { max-width: 58ch; }
+.kb-lead .tick { animation: tick var(--t-base) var(--ease-out); }
+
+/* mapa y lista de municipios */
+.terr, .plano { position: relative; height: clamp(380px, 56vh, 560px); }
+.terr canvas { display: block; width: 100%; height: 100%; }
+.terr[hidden], .plano[hidden] { display: none; }
+.plano svg { height: 100%; max-height: none; }
+.map-note { margin: 10px 8px 0 8px; font-size: 14px; color: var(--muted); }
+.rank { display: flex; flex-direction: column; }
+.rank-count { margin: 0; padding: 22px 24px 0; font: 500 12px/1.4 var(--font-data); color: var(--muted); }
+.rank-list.muni { padding-top: 10px; }
+.rank-list.muni.todos { max-height: 420px; overflow-y: auto; }
+.rank-list.muni button { grid-template-columns: 14px minmax(0, 150px) minmax(0, 1fr) 74px; }
+.rank-list.muni .code { display: flex; }
+.rank-list.muni .v { font-size: 12px; }
+.bar-track { display: block; height: 6px; border-radius: var(--r-bar); background: var(--pci-gridline, #e8edf3); overflow: hidden; }
+.bar-track .liquid { display: block; height: 100%; min-width: 4px; }
+.pager { padding: 4px 18px 16px; }
+.pager .btn[hidden] { display: none; }
+.muni-detail { margin: 0 14px 18px; padding: 14px 16px; border-radius: var(--r-control); background: var(--pci-surface-subtle); border: 1px solid var(--pci-table-divider); display: grid; gap: 8px; }
+.muni-detail h3 { margin: 0; font: 600 16px/1.25 var(--font-display); }
+.muni-detail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.muni-detail li { display: flex; gap: 8px; align-items: flex-start; }
+.muni-detail li.off { opacity: .45; }
+.muni-detail .dot { margin: 5px 0 0; flex: none; }
+.muni-detail p { margin: 0; font-size: 14px; }
+.muni-detail a, .foot a { color: var(--pci-action); }
+.hint { color: var(--muted); }
+
+/* cajón del indicador */
+.drawer .price small { font: 500 16px var(--font-ui); color: var(--fg-2); letter-spacing: 0; }
+.drawer .price-note { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.drawer .kv { grid-template-columns: 110px minmax(0, 1fr); }
+.drawer .btn { justify-self: start; }
+
+/* catálogo y ficha */
+.mini-table-wrap { overflow-x: auto; margin-top: 0; }
+table.mini.catalogo th, table.mini.catalogo td { text-align: left; vertical-align: middle; }
+table.mini.catalogo th.num, table.mini.catalogo td.num { text-align: right; }
+.ind-link { color: var(--pci-text-primary); font-weight: 600; text-decoration: none; }
+.ind-link:hover { color: var(--pci-action); text-decoration: underline; text-underline-offset: .2em; }
+table.mini .u { color: var(--muted); font-family: var(--font-ui); }
+.datos-tabla { margin-top: 12px; }
+.datos-tabla summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--pci-action); }
+.datos-tabla .mini-table-wrap { max-height: 320px; overflow-y: auto; }
+.reparto { padding: 22px 24px 20px; display: grid; gap: 12px; align-content: start; }
+.reparto h3 { margin: 0; font: 600 14px/1.3 var(--font-display); }
+.reparto .nota { margin: 0; font-size: 14px; color: var(--fg-2); }
+.reparto-pie { display: grid; gap: 10px; justify-items: start; }
+.map-wrap .mapa { min-height: 360px; }
+
+/* marcar lo nuevo: ?marcar (local) o #marcar (artifact) */
+.marcar [data-nuevo] { outline: 2px dashed #d4620a; outline-offset: 3px; }
+
+@media (max-width: 980px) {
+  .bar-fin { display: none; }
+  .terr, .plano { height: 380px; }
+}
+@media (prefers-reduced-motion: reduce) { .kb-lead .tick { animation: none; } }
+
+/* ---------- Arreglos de la crítica de diseño (2026-11-12) ---------- */
+/* el título recibe el foco al cambiar de vista (lector de pantalla), pero sin recuadro */
+#titulo:focus, .hoja:focus { outline: none; }
+/* pie: 4,35:1 con --muted; con el secundario de PCI pasa de 5:1 */
+.foot { color: var(--pci-text-secondary); }
+/* enlaces que salen al Radar publicado: una insignia ↗ sobre el icono, visible también con el raíl cerrado */
+.nav a.ext::after { content: "↗"; position: absolute; left: 34px; top: 5px; display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; background: rgba(139, 205, 255, .24); color: var(--fg); font: 600 9px/1 var(--font-ui); pointer-events: none; }
+/* lista de municipios: un punto por alerta; con anillo, grave */
+.rank-list.muni button { grid-template-columns: 14px minmax(0, 150px) minmax(0, 1fr) 92px; }
+.rank-list.muni .v.dots { display: flex; justify-content: flex-end; align-items: center; gap: 5px; min-height: 12px; }
+.v.dots .dot { width: 9px; height: 9px; margin: 0; flex: none; }
+.v.dots .dot.grave { box-shadow: 0 0 0 2px var(--pci-surface), 0 0 0 3.5px var(--pci-text-primary); margin-inline: 2px; }
+.rank-list.muni button.sel .v.dots .dot.grave { box-shadow: 0 0 0 2px var(--pci-table-row-selected), 0 0 0 3.5px var(--pci-text-primary); }
+.rank-leyenda { margin: 6px 24px 0; font-size: 14px; color: var(--pci-text-secondary); }
+
+/* ---------- Situación: jerarquía (2026-11-12) ---------- */
+/* 1. isla: el estado de los 12 indicadores en una barra, un segmento por indicador */
+.kb-lead .second { align-items: flex-start; }
+.kb-lead .second > span:last-child { max-width: 46ch; }
+.kb-lead .go { margin-left: 4px; font-weight: 600; white-space: nowrap; }
+
+/* 3. territorio: el filtro por tipo de alerta junto al mapa; sus puntos de color hacen de leyenda */
+.chips-tipo { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 24px 0; }
+.chipf { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid var(--pci-border-strong); background: var(--pci-surface); color: var(--pci-text-primary); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color var(--t-fast), border-color var(--t-fast), transform var(--t-fast) var(--ease-out); }
+.chipf:hover { background: var(--pci-filter-hover); }
+.chipf:active { transform: scale(.97); }
+.chipf[aria-pressed="true"] { background: var(--pci-filter-active); border-color: color-mix(in srgb, var(--pci-action) 45%, transparent); color: var(--pci-action); font-weight: 600; }
+.chipf .dot { margin: 0; }
+.chipf .n { font: 500 12px var(--font-data); color: var(--pci-text-secondary); }
+.tipo-nota { margin: 10px 24px 0; max-width: 70ch; font-size: 14px; color: var(--pci-text-secondary); }
+.atlas-card .map-wrap { padding-top: 6px; }
+
+/* ---------- Escala tipográfica (2026-11-12) ----------
+   Antes había 15 tamaños (10,5 · 11 · 12 · 12,5 · 13 · 13,5 · 14 · 15 · 16 · 18 · 22 · 24 · 28 · 44 …). Ahora son siete, cada uno con su papel:
+   12  etiquetas, estados, ejes, datos pequeños (Geist Mono solo en datos tabulares)
+   14  texto: cuerpo, descripciones, controles, filas, celdas
+   16  títulos de grupo y de tarjeta (h3), entradilla
+   20  títulos de sección (h2)
+   24  cifras de las filas y de los mosaicos, título del cajón
+   32  título de página (h1) y cifra del cajón
+   56  cifra grande de la isla y de la ficha
+   Montserrat solo en títulos y cifras; Geist en todo lo demás. Pesos: 400 texto, 500 controles, 600 títulos y cifras.
+   Esta capa va después de pci.css (que no se edita) y repite sus selectores para ganar por orden. */
+:root {
+  --t-12: 12px; --t-14: 14px; --t-16: 16px; --t-20: 20px; --t-24: 24px; --t-32: 32px;
+  --t-56: clamp(44px, 3.9vw, 56px);
+}
+h1 { font-size: clamp(28px, 2.3vw, var(--t-32)); }
+.lede { font-size: var(--t-16); }
+.panel-h h2 { font-size: var(--t-20); }
+.panel-h p, .drawer .who, .drawer .price-note, .kv, .note, .btn, .go, .field-pill select, .seg button, .nav a, .rank-list .name { font-size: var(--t-14); }
+.rank-list .v { font-size: var(--t-12); }
+.field-pill label, .lockup span, .rank-list .code, .ramp, .pager, .tip small, .tip .r b, .reset-n { font-size: var(--t-12); }
+.nav a .tag { font-size: var(--t-12); }
+.chip { font-size: var(--t-12); }
+.foot { font-size: var(--t-14); }
+.kb-lead .lab { font-size: var(--t-14); }
+.kb-lead .sub, .kb-lead .second span:last-child { font-size: var(--t-14); }
+.kb-lead .hero-num { font-size: var(--t-56); }
+.kb-lead .second .num { font-size: var(--t-24); }
+.tile .lab, .tile .sub { font-size: var(--t-14); }
+.drawer h3 { font-size: var(--t-24); }
+.drawer .price { font-size: var(--t-32); }
+.tip { font-size: var(--t-14); }
+.tip h4 { font-size: var(--t-14); }
+table.mini, table.mini td { font-size: var(--t-14); }
+table.mini th, table.mini thead th { font-size: var(--t-14); }
+table.mini td.num { font-size: var(--t-14); }
+.lockup b { font-size: var(--t-16); font-weight: 600; }
+
+/* ---------- Ficha de indicador: jerarquía (2026-11-12) ---------- */
+/* «De un vistazo»: los metadatos del indicador en una lista plana (12/14), no en mosaicos con cifra */
+.hechos { padding: 24px 26px; border-radius: var(--r-kpi); display: grid; gap: 8px; align-content: center; }
+.hechos .lab { font-size: var(--t-14); color: var(--fg-2); }
+.hechos-lista { display: grid; margin: 0; }
+.hechos-lista .fila { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.hechos-lista dt { margin: 0; font-size: var(--t-12); color: var(--fg-2); padding-top: 2px; }
+.hechos-lista dd { margin: 0; font-size: var(--t-14); color: var(--fg); }
+/* serie (7) y «Cómo se mide» (5) en una fila: a todo el ancho el texto del gráfico, que se escala con él, se agranda demasiado */
+.ficha-rejilla { display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 5fr); gap: var(--space-gutter); align-items: start; }
+@container view (max-width: 960px) { .ficha-rejilla { grid-template-columns: minmax(0, 1fr); } }
+.ficha-kv { display: grid; margin: 0 0 14px; }
+.ficha-kv .fila { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: var(--t-14); }
+.ficha-kv dt { margin: 0; color: var(--muted); }
+.ficha-kv dd { margin: 0; overflow-wrap: anywhere; }
+
+/* ---------- Accesibilidad (2026-11-12) ---------- */
+/* en una rejilla con [data-cuerpo] y .stack «display: contents», las tarjetas son hijos directos de .view y necesitan min-width: 0
+   para que una tabla ancha se desplace dentro de su caja y no ensanche la página (a 768 px el catálogo medía 1196) */
+[data-cuerpo] > *, .stack > * { min-width: 0; }
+/* objetivos de pulsación: mínimo 24 × 24 px (WCAG 2.2, 2.5.8) en enlaces sueltos y en «Ver la serie en una tabla» */
+.go, .datos-tabla summary, .foot a { display: inline-flex; align-items: center; min-height: 24px; }
+.datos-tabla summary { cursor: pointer; }
+/* bordes de controles con 3:1 como mínimo contra el fondo (WCAG 1.4.11); el borde de PCI (#D3DCE8) daba 1,4:1 */
+:root { --borde-control: #7b8aa0; }
+.chipf, .btn { border-color: var(--borde-control); }
+.chipf[aria-pressed="true"] { border-color: var(--pci-action); }
+.drawer .who { color: var(--fg); }
+/* movimiento: con «reducir movimiento» no hay desplazamientos ni cambios de escala al pasar o pulsar */
+@media (prefers-reduced-motion: reduce) {
+  .est, .chipf, .btn, .tile, button.tile, .hero-cta, .cta-ico { transition: none; }
+  .est:hover, .est:focus-visible, .est[aria-expanded="true"], button.tile:hover, .chipf:active, .hero-cta:hover .cta-ico { transform: none; }
+}
+
+/* intro una vez por sesión: si ya se vio, el guion de la cabecera marca <html class="sin-intro"> antes de pintar */
+html.sin-intro #intro { display: none; }
+html.sin-intro .app.pre .main { opacity: 1; transform: none; filter: none; }
+html.sin-intro .app.pre .dock { opacity: 1; }
+
+/* ---------- Los 12 indicadores clave: encabezado editorial y seis módulos (2026-11-12) ----------
+   Reutiliza los tokens existentes (--pci-*, --peor, --mejor, --t-*, --font-*) y añade solo los de la marca del Radar: azul marino y turquesa.
+   El turquesa (#11B9B6) no llega a 3:1 sobre blanco, así que no lleva texto ni información esencial: se usa en versión oscura (--teal-ink) y como tinte. */
+:root {
+  --navy: #102E50; --teal: #11B9B6; --teal-ink: #0A6F6D;
+  --ik-hover: rgba(16, 46, 80, .045); --ik-sel: rgba(17, 185, 182, .09);
+  --t-28: 28px; /* cifra de cada indicador: escalón añadido a la escala (12 · 14 · 16 · 20 · 24 · 28 · 32 · 56) */
+}
+.ik { display: grid; gap: 28px; }
+.ik-cab { display: grid; gap: 4px; padding: 10px 2px 0; }
+.ik-eyebrow { margin: 0; font: 500 12px/1 var(--font-ui); letter-spacing: .09em; text-transform: uppercase; color: var(--teal-ink); }
+.ik-titulo { margin: 8px 0 0; font: 600 clamp(28px, 2.3vw, var(--t-32))/1.15 var(--font-display); letter-spacing: -.02em; color: var(--navy); }
+.ik-sub { margin: 6px 0 0; max-width: 60ch; font-size: var(--t-14); line-height: 1.5; color: var(--pci-text-secondary); }
+
+/* dos columnas independientes: cada módulo toma su altura natural, sin estirarse para igualar al de al lado */
+.ik-modulos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+@container view (max-width: 980px) { .ik-modulos { grid-template-columns: minmax(0, 1fr); } }
+.ik-col { display: grid; gap: 24px; align-content: start; min-width: 0; }
+
+.ik-modulo { min-width: 0; padding: 22px 24px 12px; background: #fff; border: 1px solid var(--pci-border); border-radius: 16px; box-shadow: 0 1px 2px rgba(16, 46, 80, .04); }
+.ik-mod-cab { display: grid; gap: 6px; padding-bottom: 16px; }
+.ik-mod-tit { display: flex; align-items: center; gap: 10px; }
+.ik-ico { width: 22px; height: 22px; flex: none; fill: none; stroke: var(--navy); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.ik-mod-tit h3 { margin: 0; font: 600 var(--t-16)/1.3 var(--font-display); letter-spacing: -.005em; color: var(--navy); }
+.ik-mod-q { margin: 0; font-size: var(--t-14); line-height: 1.45; color: var(--pci-text-secondary); }
+.ik-mod-estados { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; padding: 0; list-style: none; font: 500 12px/1.4 var(--font-ui); }
+.ik-mod-estados li { display: inline-flex; align-items: center; gap: 6px; color: var(--pci-text-secondary); }
+.ik-pto { width: 8px; height: 8px; flex: none; border-radius: 50%; background: currentColor; }
+.ik-mod-estados .st-empeora { color: var(--peor); }
+.ik-mod-estados .st-mejora { color: var(--mejor); }
+.ik-mod-estados .st-primer_dato { color: var(--pci-text-muted); }
+
+/* indicadores: una fila por indicador, separadas por un filete (no son tarjetas) */
+.ik-lista { margin: 0 -12px; padding: 0; list-style: none; }
+.ik-lista > li { border-top: 1px solid var(--pci-table-divider); }
+.ik-fila { position: relative; display: grid; width: 100%; box-sizing: border-box; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nombre abrir" "valor serie" "evo evo"; column-gap: 16px; row-gap: 6px; align-items: end; padding: 16px 12px 15px; border: 0; border-radius: 10px; background: none; text-align: left; font: inherit; color: var(--navy); cursor: pointer; transition: background-color 160ms ease, box-shadow 160ms ease; }
+.ik-nombre { grid-area: nombre; align-self: start; padding-right: 8px; font: 500 var(--t-14)/1.35 var(--font-ui); color: var(--navy); }
+.ik-abrir { grid-area: abrir; align-self: start; justify-self: end; width: 16px; height: 16px; margin-top: 2px; fill: var(--teal-ink); opacity: 0; transform: translateX(-3px); transition: opacity 160ms ease, transform 160ms ease; }
+.ik-valor { grid-area: valor; display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.ik-valor b { font: 600 var(--t-28)/1.1 var(--font-ui); letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--navy); }
+.ik-valor small { font: 500 var(--t-14)/1 var(--font-ui); color: var(--pci-text-secondary); }
+.ik-evo { grid-area: evo; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; font: 400 var(--t-14)/1.4 var(--font-ui); color: var(--pci-text-secondary); }
+.ik-estado { font-weight: 600; }
+.ik-sep { margin: 0 8px; color: var(--pci-text-muted); }
+.ik-flecha { font-weight: 600; }
+.ik-evo.st-empeora .ik-estado, .ik-evo.st-empeora .ik-flecha { color: var(--peor); }
+.ik-evo.st-mejora .ik-estado, .ik-evo.st-mejora .ik-flecha { color: var(--mejor); }
+.ik-evo.st-primer_dato .ik-estado { color: var(--pci-text-muted); }
+
+/* mini serie: mismo tamaño y criterio en todos los módulos; sin datos suficientes, un texto en su lugar */
+.ik-serie { grid-area: serie; position: relative; justify-self: end; width: 132px; height: 40px; }
+.ik-sinserie { display: flex; align-items: flex-end; justify-content: flex-end; /* misma altura que la serie: todas las filas llevan el mismo ritmo */ font: 400 12px/1.2 var(--font-ui); color: var(--pci-text-muted); }
+.ik-spark { display: block; width: 132px; height: 40px; overflow: visible; }
+.ik-spark-linea { fill: none; stroke: var(--navy); stroke-width: 1.75; stroke-linejoin: round; stroke-linecap: round; }
+.ik-spark-fin { fill: var(--navy); stroke: #fff; stroke-width: 1.5; }
+.ik-spark-fin.st-empeora { fill: var(--peor); }
+.ik-spark-fin.st-mejora { fill: var(--mejor); }
+.ik-spark-guia { stroke: var(--navy); stroke-opacity: .28; stroke-width: 1; stroke-dasharray: 2 3; }
+.ik-spark-punto { fill: #fff; stroke: var(--navy); stroke-width: 1.75; }
+.ik-tip { position: absolute; bottom: calc(100% + 6px); z-index: 2; padding: 4px 8px; border-radius: 6px; background: var(--navy); color: #fff; font: 500 12px/1.3 var(--font-ui); font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateX(-50%); transition: opacity 120ms ease; }
+.ik-tip.on { opacity: 1; }
+
+/* hover, foco y selección: un fondo suave y la flecha de apertura; el indicador abierto lleva además una barra de 3 px (no solo color) */
+.ik-fila:hover { background: var(--ik-hover); }
+.ik-fila:hover .ik-abrir, .ik-fila:focus-visible .ik-abrir, .ik-fila[aria-expanded="true"] .ik-abrir { opacity: 1; transform: none; }
+.ik-fila[aria-expanded="true"] { background: var(--ik-sel); box-shadow: inset 3px 0 0 var(--navy); }
+.ik-fila:focus-visible { outline: 2px solid var(--navy); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) {
+  .ik-fila, .ik-abrir, .ik-tip { transition: none; }
+  .ik-abrir { transform: none; }
+}
+
+/* ---------- Situación: cabecera editorial, hero y panel de los 12 indicadores (2026-11-12) ----------
+   Mismas fuentes y tokens que el resto del Radar. El fondo Flow se conserva, pero bajo un degradado de azul noche que lo integra con la
+   superficie en lugar de dejarlo como papel pintado. Cifra grande: --t-hero, un escalón propio (la escala sigue siendo 12·14·16·24·28·32·56). */
+:root { --t-hero: clamp(72px, 6.6vw, 96px); }
+
+/* cabecera: bloque editorial a la izquierda y meta-información a la derecha, alineados por la base */
+.head-eyebrow { margin: 0 0 10px; font: 500 12px/1 var(--font-ui); letter-spacing: .09em; text-transform: uppercase; color: var(--teal-ink); }
+[data-vista="situacion"] .head { align-items: flex-end; gap: 22px 56px; padding: 14px 0 6px; }
+[data-vista="situacion"] h1 { color: var(--navy); }
+[data-vista="situacion"] .lede { display: grid; gap: 6px; max-width: 50ch; margin-top: 14px; font-size: var(--t-16); line-height: 1.5; color: var(--pci-text-secondary); }
+.lede-idea b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--navy); }
+.meta { display: flex; align-items: stretch; margin: 0; padding: 0; list-style: none; background: #fff; border: 1px solid var(--pci-border); border-radius: 14px; box-shadow: 0 1px 2px rgba(16, 46, 80, .04); }
+.meta li { display: flex; align-items: center; gap: 8px; padding: 13px 18px; font: 400 var(--t-12)/1.2 var(--font-ui); color: var(--pci-text-secondary); white-space: nowrap; }
+.meta li + li { border-left: 1px solid var(--pci-table-divider); }
+.meta b { font: 600 var(--t-14)/1.2 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--navy); }
+.m-et { margin-left: -4px; }
+.meta li:first-child .m-et { margin-left: 0; }
+.mt-ico { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--teal-ink); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* hero */
+.hero-sit { padding: 44px 48px; background-color: #0a1b3f; background-position: center 30%; box-shadow: 0 24px 48px -28px rgba(8, 20, 48, .5); }
+.hero-sit::before { background: linear-gradient(96deg, rgba(8, 20, 48, .92) 0%, rgba(8, 22, 54, .74) 46%, rgba(10, 28, 66, .34) 100%); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr); gap: 56px; align-items: stretch; }
+@container hero (max-width: 900px) { .hero-grid { grid-template-columns: minmax(0, 1fr); gap: 36px; } .hero-sit { padding: 36px 32px; } }
+.hero-izq { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.hero-etiqueta { margin: 0; font: 500 12px/1 var(--font-ui); letter-spacing: .09em; text-transform: uppercase; color: var(--teal); }
+.hero-cifra { display: flex; align-items: baseline; margin: 20px 0 0; font: 600 var(--t-hero)/.95 var(--font-display); letter-spacing: -.035em; color: #fff; white-space: nowrap; }
+.hc-de { margin-left: .24em; font-size: .46em; font-weight: 500; letter-spacing: -.01em; color: var(--on-ink-2); }
+.hero-texto { max-width: 44ch; margin: 20px 0 0; font: 400 var(--t-16)/1.55 var(--font-ui); color: var(--on-ink-2); }
+.hero-alerta { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 20px; width: 100%; max-width: 480px; margin-top: 34px; padding: 16px 22px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 16px; background: rgba(255, 255, 255, .045); }
+.ha-cifra { margin: 0; font: 600 var(--t-32)/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #fff; }
+.ha-texto { max-width: 34ch; margin: 0; font: 400 var(--t-14)/1.5 var(--font-ui); color: var(--on-ink); }
+.hero-cta { display: inline-flex; align-items: center; gap: 14px; height: 46px; margin-top: 18px; padding: 0 7px 0 22px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; background: rgba(255, 255, 255, .07); font: 600 var(--t-14)/1 var(--font-ui); color: #fff; text-decoration: none; transition: background-color 160ms ease, border-color 160ms ease; }
+.cta-ico { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--teal); color: #04202a; transition: transform 160ms ease, background-color 160ms ease; }
+.cta-ico .ico { width: 14px; height: 14px; }
+.hero-cta:hover { background: rgba(255, 255, 255, .15); border-color: rgba(255, 255, 255, .55); }
+.hero-cta:hover .cta-ico { transform: translateX(2px); background: #3fd3d0; }
+.hero-cta:focus-visible { outline: 2px solid var(--pci-brand-ice); outline-offset: 3px; }
+
+/* panel de los 12 indicadores (también en la isla del catálogo) */
+.estatus { display: flex; flex-direction: column; justify-content: space-between; gap: 22px; min-width: 0; padding: 28px 30px; border: 1px solid rgba(255, 255, 255, .13); border-radius: 20px; background: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .035)); }
+.estatus-tit { margin: 0; font: 600 var(--t-14)/1.35 var(--font-ui); color: var(--on-ink); }
+.estatus-barra { display: flex; gap: 6px; }
+.est { flex: 1; min-width: 0; height: 72px; padding: 0; border: 0; border-radius: 10px; cursor: pointer; transition: transform 160ms ease, outline-color 160ms ease; }
+.est.corte { margin-left: 10px; }
+.est.st-empeora { background: #ff8a92; } .est.st-mejora { background: #b0d660; } .est.st-estable { background: #8bcdff; } .est.st-cambia { background: #fab219; }
+.est.st-primer_dato { background: transparent; box-shadow: inset 0 0 0 1.5px #8a96c0; } /* hueco: «sin dato anterior» se distingue también por forma, no solo por color */
+.est:hover { transform: translateY(-3px); outline: 2px solid rgba(255, 255, 255, .55); outline-offset: 2px; }
+.est:focus-visible { transform: translateY(-3px); outline: 2px solid #fff; outline-offset: 3px; }
+.est[aria-expanded="true"] { transform: translateY(-3px); outline: 2px solid var(--pci-brand-ice); outline-offset: 2px; }
+.estatus-leyenda { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 20px; margin: 0; padding: 0; list-style: none; }
+.estatus-leyenda li { display: grid; grid-template-columns: 12px auto; grid-template-areas: "sw n" ". l"; column-gap: 10px; align-items: center; }
+.estatus-leyenda .sw { grid-area: sw; width: 12px; height: 12px; border-radius: 3px; }
+.estatus-leyenda b { grid-area: n; font: 600 var(--t-24)/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #fff; }
+.estatus-leyenda li > span { grid-area: l; margin-top: 2px; font: 400 var(--t-12)/1.3 var(--font-ui); color: var(--on-ink-2); }
+.estatus-leyenda .st-empeora .sw { background: #ff8a92; } .estatus-leyenda .st-mejora .sw { background: #b0d660; } .estatus-leyenda .st-estable .sw { background: #8bcdff; } .estatus-leyenda .st-cambia .sw { background: #fab219; }
+.estatus-leyenda .st-primer_dato .sw { box-shadow: inset 0 0 0 1.5px #8a96c0; }
+.estatus-ayuda { display: grid; align-content: start; min-height: 46px; margin: 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .12); font: 400 var(--t-14)/1.45 var(--font-ui); color: var(--on-ink-2); }
+.ay-hov b { display: block; font-weight: 600; color: #fff; }
+
+/* a 1280 px la entradilla y la barra de meta-información no caben en la misma fila: se compactan, y si aun así bajan, la barra queda alineada a la derecha */
+[data-vista="situacion"] #scope { margin-left: auto; }
+@media (max-width: 1360px) {
+  [data-vista="situacion"] .head { column-gap: 40px; }
+  [data-vista="situacion"] .lede { max-width: 44ch; }
+  .meta li { gap: 7px; padding: 12px 14px; }
+}
+/* el bloque editorial cede espacio (se estrecha y reparte la entradilla en más líneas) antes de dejar caer la meta-información a otra fila */
+[data-vista="situacion"] .head > div:first-child { flex: 1 1 360px; min-width: 0; }
+[data-vista="situacion"] #scope { flex: 0 0 auto; }
