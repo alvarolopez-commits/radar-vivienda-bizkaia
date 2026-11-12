@@ -176,16 +176,6 @@ table.mini .u { color: var(--muted); font-family: var(--font-ui); }
 .kb-lead .second { align-items: flex-start; }
 .kb-lead .second > span:last-child { max-width: 46ch; }
 .kb-lead .go { margin-left: 4px; font-weight: 600; white-space: nowrap; }
-.estatus { padding: 24px 26px; border-radius: var(--r-kpi); display: grid; gap: 16px; align-content: center; }
-.estatus .lab { font-size: 14px; color: var(--fg-2); }
-.estatus .sub { margin: 0; font-size: 14px; color: var(--fg-2); }
-.estatus-barra { display: flex; gap: 4px; height: 30px; }
-.est { flex: 1; min-width: 0; padding: 0; border: 0; border-radius: var(--r-bar); cursor: pointer; transition: transform var(--t-fast) var(--ease-out), filter var(--t-fast); }
-.est:hover { transform: scaleY(1.22); filter: brightness(1.12); }
-.est.st-empeora { background: #ff8a92; } .est.st-mejora { background: #b0d660; } .est.st-estable { background: #8bcdff; } .est.st-cambia { background: #fab219; } .est.st-primer_dato { background: #6f7ba3; }
-.estatus-leyenda { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--fg); }
-.estatus-leyenda li { display: flex; align-items: center; gap: 8px; }
-.estatus-leyenda .dot { margin: 0; }
 
 /* 3. territorio: el filtro por tipo de alerta junto al mapa; sus puntos de color hacen de leyenda */
 .chips-tipo { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 24px 0; }
@@ -266,8 +256,8 @@ table.mini td.num { font-size: var(--t-14); }
 .drawer .who { color: var(--fg); }
 /* movimiento: con «reducir movimiento» no hay desplazamientos ni cambios de escala al pasar o pulsar */
 @media (prefers-reduced-motion: reduce) {
-  .est, .chipf, .btn, .tile, button.tile { transition: none; }
-  .est:hover, button.tile:hover, .chipf:active { transform: none; }
+  .est, .chipf, .btn, .tile, button.tile, .hero-cta, .cta-ico { transition: none; }
+  .est:hover, .est:focus-visible, .est[aria-expanded="true"], button.tile:hover, .chipf:active, .hero-cta:hover .cta-ico { transform: none; }
 }
 
 /* intro una vez por sesión: si ya se vio, el guion de la cabecera marca <html class="sin-intro"> antes de pintar */
@@ -346,3 +336,74 @@ html.sin-intro .app.pre .dock { opacity: 1; }
   .ik-fila, .ik-abrir, .ik-tip { transition: none; }
   .ik-abrir { transform: none; }
 }
+
+/* ---------- Situación: cabecera editorial, hero y panel de los 12 indicadores (2026-11-12) ----------
+   Mismas fuentes y tokens que el resto del Radar. El fondo Flow se conserva, pero bajo un degradado de azul noche que lo integra con la
+   superficie en lugar de dejarlo como papel pintado. Cifra grande: --t-hero, un escalón propio (la escala sigue siendo 12·14·16·24·28·32·56). */
+:root { --t-hero: clamp(72px, 6.6vw, 96px); }
+
+/* cabecera: bloque editorial a la izquierda y meta-información a la derecha, alineados por la base */
+.head-eyebrow { margin: 0 0 10px; font: 500 12px/1 var(--font-ui); letter-spacing: .09em; text-transform: uppercase; color: var(--teal-ink); }
+[data-vista="situacion"] .head { align-items: flex-end; gap: 22px 56px; padding: 14px 0 6px; }
+[data-vista="situacion"] h1 { color: var(--navy); }
+[data-vista="situacion"] .lede { display: grid; gap: 6px; max-width: 50ch; margin-top: 14px; font-size: var(--t-16); line-height: 1.5; color: var(--pci-text-secondary); }
+.lede-idea b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--navy); }
+.meta { display: flex; align-items: stretch; margin: 0; padding: 0; list-style: none; background: #fff; border: 1px solid var(--pci-border); border-radius: 14px; box-shadow: 0 1px 2px rgba(16, 46, 80, .04); }
+.meta li { display: flex; align-items: center; gap: 8px; padding: 13px 18px; font: 400 var(--t-12)/1.2 var(--font-ui); color: var(--pci-text-secondary); white-space: nowrap; }
+.meta li + li { border-left: 1px solid var(--pci-table-divider); }
+.meta b { font: 600 var(--t-14)/1.2 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--navy); }
+.m-et { margin-left: -4px; }
+.meta li:first-child .m-et { margin-left: 0; }
+.mt-ico { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--teal-ink); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* hero */
+.hero-sit { padding: 44px 48px; background-color: #0a1b3f; background-position: center 30%; box-shadow: 0 24px 48px -28px rgba(8, 20, 48, .5); }
+.hero-sit::before { background: linear-gradient(96deg, rgba(8, 20, 48, .92) 0%, rgba(8, 22, 54, .74) 46%, rgba(10, 28, 66, .34) 100%); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr); gap: 56px; align-items: stretch; }
+@container hero (max-width: 900px) { .hero-grid { grid-template-columns: minmax(0, 1fr); gap: 36px; } .hero-sit { padding: 36px 32px; } }
+.hero-izq { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.hero-etiqueta { margin: 0; font: 500 12px/1 var(--font-ui); letter-spacing: .09em; text-transform: uppercase; color: var(--teal); }
+.hero-cifra { display: flex; align-items: baseline; margin: 20px 0 0; font: 600 var(--t-hero)/.95 var(--font-display); letter-spacing: -.035em; color: #fff; white-space: nowrap; }
+.hc-de { margin-left: .24em; font-size: .46em; font-weight: 500; letter-spacing: -.01em; color: var(--on-ink-2); }
+.hero-texto { max-width: 44ch; margin: 20px 0 0; font: 400 var(--t-16)/1.55 var(--font-ui); color: var(--on-ink-2); }
+.hero-alerta { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 20px; width: 100%; max-width: 480px; margin-top: 34px; padding: 16px 22px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 16px; background: rgba(255, 255, 255, .045); }
+.ha-cifra { margin: 0; font: 600 var(--t-32)/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #fff; }
+.ha-texto { max-width: 34ch; margin: 0; font: 400 var(--t-14)/1.5 var(--font-ui); color: var(--on-ink); }
+.hero-cta { display: inline-flex; align-items: center; gap: 14px; height: 46px; margin-top: 18px; padding: 0 7px 0 22px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; background: rgba(255, 255, 255, .07); font: 600 var(--t-14)/1 var(--font-ui); color: #fff; text-decoration: none; transition: background-color 160ms ease, border-color 160ms ease; }
+.cta-ico { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--teal); color: #04202a; transition: transform 160ms ease, background-color 160ms ease; }
+.cta-ico .ico { width: 14px; height: 14px; }
+.hero-cta:hover { background: rgba(255, 255, 255, .15); border-color: rgba(255, 255, 255, .55); }
+.hero-cta:hover .cta-ico { transform: translateX(2px); background: #3fd3d0; }
+.hero-cta:focus-visible { outline: 2px solid var(--pci-brand-ice); outline-offset: 3px; }
+
+/* panel de los 12 indicadores (también en la isla del catálogo) */
+.estatus { display: flex; flex-direction: column; justify-content: space-between; gap: 22px; min-width: 0; padding: 28px 30px; border: 1px solid rgba(255, 255, 255, .13); border-radius: 20px; background: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .035)); }
+.estatus-tit { margin: 0; font: 600 var(--t-14)/1.35 var(--font-ui); color: var(--on-ink); }
+.estatus-barra { display: flex; gap: 6px; }
+.est { flex: 1; min-width: 0; height: 72px; padding: 0; border: 0; border-radius: 10px; cursor: pointer; transition: transform 160ms ease, outline-color 160ms ease; }
+.est.corte { margin-left: 10px; }
+.est.st-empeora { background: #ff8a92; } .est.st-mejora { background: #b0d660; } .est.st-estable { background: #8bcdff; } .est.st-cambia { background: #fab219; }
+.est.st-primer_dato { background: transparent; box-shadow: inset 0 0 0 1.5px #8a96c0; } /* hueco: «sin dato anterior» se distingue también por forma, no solo por color */
+.est:hover { transform: translateY(-3px); outline: 2px solid rgba(255, 255, 255, .55); outline-offset: 2px; }
+.est:focus-visible { transform: translateY(-3px); outline: 2px solid #fff; outline-offset: 3px; }
+.est[aria-expanded="true"] { transform: translateY(-3px); outline: 2px solid var(--pci-brand-ice); outline-offset: 2px; }
+.estatus-leyenda { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 20px; margin: 0; padding: 0; list-style: none; }
+.estatus-leyenda li { display: grid; grid-template-columns: 12px auto; grid-template-areas: "sw n" ". l"; column-gap: 10px; align-items: center; }
+.estatus-leyenda .sw { grid-area: sw; width: 12px; height: 12px; border-radius: 3px; }
+.estatus-leyenda b { grid-area: n; font: 600 var(--t-24)/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #fff; }
+.estatus-leyenda li > span { grid-area: l; margin-top: 2px; font: 400 var(--t-12)/1.3 var(--font-ui); color: var(--on-ink-2); }
+.estatus-leyenda .st-empeora .sw { background: #ff8a92; } .estatus-leyenda .st-mejora .sw { background: #b0d660; } .estatus-leyenda .st-estable .sw { background: #8bcdff; } .estatus-leyenda .st-cambia .sw { background: #fab219; }
+.estatus-leyenda .st-primer_dato .sw { box-shadow: inset 0 0 0 1.5px #8a96c0; }
+.estatus-ayuda { display: grid; align-content: start; min-height: 46px; margin: 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .12); font: 400 var(--t-14)/1.45 var(--font-ui); color: var(--on-ink-2); }
+.ay-hov b { display: block; font-weight: 600; color: #fff; }
+
+/* a 1280 px la entradilla y la barra de meta-información no caben en la misma fila: se compactan, y si aun así bajan, la barra queda alineada a la derecha */
+[data-vista="situacion"] #scope { margin-left: auto; }
+@media (max-width: 1360px) {
+  [data-vista="situacion"] .head { column-gap: 40px; }
+  [data-vista="situacion"] .lede { max-width: 44ch; }
+  .meta li { gap: 7px; padding: 12px 14px; }
+}
+/* el bloque editorial cede espacio (se estrecha y reparte la entradilla en más líneas) antes de dejar caer la meta-información a otra fila */
+[data-vista="situacion"] .head > div:first-child { flex: 1 1 360px; min-width: 0; }
+[data-vista="situacion"] #scope { flex: 0 0 auto; }

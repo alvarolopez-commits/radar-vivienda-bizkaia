@@ -51,7 +51,7 @@ export function renderIndicadores(root, store, ctx) {
         el("div", { class: "lab", text: "Catálogo de indicadores" }), el("div", { class: "hero-num", text: es(all.length) }),
         el("div", { class: "sub", text: `${keyN} clave con semáforo y ${all.length - keyN} de contexto, cada uno con su ficha.` }),
         el("div", { class: "second" }, [el("span", { class: "num", text: `${by.empeora ?? 0} de ${keyN}` }), el("span", { text: "indicadores clave empeoran frente a su periodo anterior" })])]),
-      estatusPanel({ ks, estados: store.catalogo.estados, onPick: (k) => { location.hash = `#indicadores/${k.id}`; }, lab: `Los ${keyN} indicadores clave, de más a menos urgente`, sub: "Cada segmento es un indicador: elige uno para abrir su ficha." }),
+      estatusPanel({ ks, estados: store.catalogo.estados, onPick: (k) => { location.hash = `#indicadores/${k.id}`; }, lab: `Los ${keyN} indicadores clave, de más a menos urgente`, sub: "Cada segmento es un indicador: elige uno para abrir su ficha." }).node,
     ])]),
     el("div", { class: "card rise", style: "--i:2" }, [
       el("div", { class: "panel-h" }, [el("div", {}, [el("h2", { text: "Catálogo de indicadores" }), count])]),
