@@ -95,7 +95,7 @@ async function init() {
   document.querySelector("[data-saltar]").addEventListener("click", (e) => { e.preventDefault(); document.getElementById("hoja").focus(); });
   const views = {}, ctxs = {};
   const filters = document.getElementById("filters");
-  const h1 = document.getElementById("titulo"), lede = document.querySelector("[data-sub]"), scope = document.getElementById("scope");
+  const h1 = document.getElementById("titulo"), lede = document.querySelector("[data-sub]"), scope = document.getElementById("scope"), eyebrow = document.querySelector("[data-eyebrow]");
   let current = null;
 
   const route = () => {
@@ -119,12 +119,14 @@ async function init() {
     const head = views[view]?.head?.() ?? {};
     const title = head.title ?? NAMES[view];
     h1.textContent = title;
-    lede.textContent = head.sub ?? "";
+    eyebrow.textContent = head.eyebrow ?? ""; eyebrow.hidden = !head.eyebrow;
+    lede.replaceChildren(...[head.sub ?? ""].flat());
+    document.getElementById("hoja").dataset.vista = view; // permite dar a cada vista su propio tratamiento de la cabecera
     scope.replaceChildren(...(head.scope ?? [el("span", { class: "chip" }, ["Datos descargados el ", el("b", { text: longDate(store.territorio.fecha_datos) })]),
       el("span", { class: "chip" }, [el("b", { text: Object.keys(store.territorio.municipios).length }), ` ${store.territorio.unidad.varias}`])]).filter(Boolean));
     filters.replaceChildren(...(views[view]?.bar?.(sub) ?? []));
     document.querySelector(".bar").hidden = !filters.children.length; // Situación no tiene filtros globales: el tipo de alerta está junto al mapa
-    scope.append(el("span", { class: "chip", "data-nuevo": "" }, [el("b", { text: "Prototipo" }), " de diseño · escritorio"]));
+    if (!head.sinAviso) scope.append(el("span", { class: "chip", "data-nuevo": "" }, [el("b", { text: "Prototipo" }), " de diseño · escritorio"]));
     document.title = `${title} · ${store.territorio.producto} · ${store.territorio.nombre} (prototipo)`;
     if (current !== `${view}/${sub ?? ""}`) {
       const keep = view === "situacion" && sub === "alertas";

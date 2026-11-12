@@ -10,7 +10,7 @@ import { newState, territory3d } from "./territorio3d.js";
 import { estatusPanel } from "./estatus.js";
 import { renderIndicadoresClave } from "./indicadores-clave.js";
 import { ico, openDrawer, placeLenses, seg, shortPeriod } from "./pci.js";
-import { el, es, extLink, labelTag, periodLabel, ruleText, sourcesLine, stateTag, unitOf } from "./ui.js";
+import { el, es, extLink, labelTag, longDate, periodLabel, ruleText, sourcesLine, stateTag, unitOf } from "./ui.js";
 
 const ALERT_COLORS = ["#b4545b", "#1a4d7a", "#5d6d1f", "#86bfc6", "#c08a2d", "#4d5a6a", "#d0878c", "#2e7d76"];
 const FIRST = 8; // municipios de la lista antes de «Ver todos»
@@ -57,16 +57,20 @@ export function renderSituacion(root, store, ctx) {
   const body = root.querySelector("[data-cuerpo]");
 
   // ---------- 1. isla oscura: cómo están los 12 indicadores ----------
-  const kb = el("div", { class: "keybox bg-flow1 ink rise", style: "--i:1" }, [el("div", { class: "kb-grid" }, [
-    el("div", { class: "kb-lead" }, [
-      el("div", { class: "lab", text: "Indicadores clave que empeoran" }),
-      el("div", { class: "hero-num", text: `${worse} de ${ks.length}` }),
+  // Dos zonas: a la izquierda el insight principal (6 de 12, cómo se lee, los municipios con alerta grave y el acceso al mapa) y a la
+  // derecha el panel de los 12 indicadores (js/estatus.js). Todas las cifras y los textos salen de los datos, como antes.
+  const panel = estatusPanel({ ks, estados, onPick: (k) => drawer(k), lab: `Los ${ks.length} indicadores clave, de más a menos urgente`, sub: "Cada segmento es un indicador: elige uno para ver su serie." });
+  const kb = el("div", { class: "keybox bg-flow1 ink hero-sit rise", style: "--i:1", "data-nuevo": "" }, [el("div", { class: "hero-grid" }, [
+    el("div", { class: "hero-izq" }, [
+      el("p", { class: "hero-etiqueta", text: "Indicadores clave que empeoran" }),
+      el("p", { class: "hero-cifra" }, [el("span", { class: "hc-num", text: String(worse) }), el("span", { class: "hc-de", text: ` de ${ks.length}` })]),
       // la entradilla de la página ya dice «6 de 12 empeoran» y «50 de 113 municipios tienen alguna alerta»: aquí, cómo se lee y el dato nuevo
-      el("div", { class: "sub", text: "Cada indicador se compara con su periodo anterior comparable. No hay un índice que sume indicadores distintos." }),
-      el("div", { class: "second" }, [el("span", { class: "num", text: es(G[""].grave) }),
-        el("span", {}, [`${G[""].grave === 1 ? "municipio tiene" : "municipios tienen"} alguna alerta grave, de los ${es(G[""].n)} con alguna alerta. `, el("a", { class: "go", href: "#situacion/alertas" }, ["Ver el mapa", ico("i-arrow")])])]),
+      el("p", { class: "hero-texto", text: "Cada indicador se compara con su periodo anterior comparable. No hay un índice que sume indicadores distintos." }),
+      el("div", { class: "hero-alerta" }, [el("p", { class: "ha-cifra", text: es(G[""].grave) }),
+        el("p", { class: "ha-texto", text: `${G[""].grave === 1 ? "municipio tiene" : "municipios tienen"} alguna alerta grave, de los ${es(G[""].n)} con alguna alerta.` })]),
+      el("a", { class: "hero-cta", href: "#situacion/alertas" }, ["Ver el mapa", el("span", { class: "cta-ico", "aria-hidden": "true" }, [ico("i-arrow")])]),
     ]),
-    estatusPanel({ ks, estados, onPick: (k) => drawer(k), lab: `Los ${ks.length} indicadores clave, de más a menos urgente`, sub: "Cada segmento es un indicador: elige uno para ver su serie." }),
+    panel.node,
   ])]);
 
   // ---------- 2. los 12 indicadores clave: un módulo por dimensión (js/indicadores-clave.js) ----------
@@ -79,7 +83,7 @@ export function renderSituacion(root, store, ctx) {
       cal ? ["Próximo dato", `${cal.proxima} (${cal.periodicidad.toLowerCase()})`] : null].filter(Boolean);
     openDrawer({
       label: ind.nombre,
-      onClose: () => claves.setSelected(null),
+      onClose: () => { claves.setSelected(null); panel.setSelected(null); },
       top: { head: [el("div", { class: "who", text: store.dims[ind.dimension]?.nombre ?? "" }), el("h3", { text: ind.nombre })],
         rest: [el("div", { class: "price" }, [es(x.valor, ind.decimales), el("small", { text: ` ${unitOf(ind.unidad)}` })]),
           el("div", { class: "price-note" }, [`${periodLabel(x.periodo)} · ${ind.ambito} `, stateTag(x.estado, estados[x.estado])])] },
@@ -93,7 +97,7 @@ export function renderSituacion(root, store, ctx) {
         el("a", { class: "btn primary", href: `#indicadores/${ind.id}`, text: "Ver la ficha del indicador" }),
       ],
     });
-    claves.setSelected(ind.id); // después de abrir: abrir cierra (y desmarca) el cajón anterior, si lo había
+    claves.setSelected(ind.id); panel.setSelected(ind.id); // después de abrir: abrir cierra (y desmarca) el cajón anterior, si lo había
   }
 
   // ---------- 3. territorio: mapa y lista de municipios ----------
@@ -217,7 +221,14 @@ export function renderSituacion(root, store, ctx) {
   }
 
   // ---------- montaje: 1) indicadores, 2) territorio ----------
-  const finding = [`${worse} de ${ks.length} indicadores clave empeoran`, " frente a su periodo anterior. ", `${G[""].n} de ${total} ${unit.varias}`, " tienen alguna alerta."];
+  // cabecera: la frase de siempre, maquetada en dos ideas con las cifras destacadas; la meta-información, en una sola barra
+  const lede = [el("span", { class: "lede-idea" }, [el("b", { text: `${worse} de ${ks.length}` }), " indicadores clave empeoran frente a su periodo anterior."]), " ",
+    el("span", { class: "lede-idea" }, [el("b", { text: `${G[""].n} de ${total}` }), ` ${unit.varias} tienen alguna alerta.`])];
+  const meta = el("ul", { class: "meta", "aria-label": "Datos de esta vista" }, [
+    el("li", {}, [ico("i-meta-fecha", "mt-ico"), el("span", { class: "m-et", text: "Datos descargados el " }), el("b", { text: longDate(store.territorio.fecha_datos) })]),
+    el("li", {}, [ico("i-meta-municipios", "mt-ico"), el("b", { text: String(total) }), el("span", { class: "m-et", text: ` ${unit.varias}` })]),
+    el("li", { "data-nuevo": "" }, [ico("i-meta-prototipo", "mt-ico"), el("b", { text: "Prototipo" }), el("span", { class: "m-et", text: " de diseño · escritorio" })]),
+  ]);
   body.replaceChildren(
     kb,
     claves.section,
@@ -234,7 +245,7 @@ export function renderSituacion(root, store, ctx) {
   syncType(); paintDetail(); showView();
 
   return {
-    head: () => ({ sub: finding.join("") }),
+    head: () => ({ eyebrow: "Radar · Situación", sub: lede, scope: [meta], sinAviso: true }),
     bar: () => [],
     show(sub) { if (sub === "alertas") document.getElementById("s-alertas")?.scrollIntoView(); requestAnimationFrame(placeLenses); },
   };
