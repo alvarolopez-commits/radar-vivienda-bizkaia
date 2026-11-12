@@ -300,3 +300,8 @@ table.mini td.num { font-size: var(--t-14); }
   .est, .chipf, .linea, .btn, .tile, button.tile { transition: none; }
   .est:hover, button.tile:hover, .chipf:active, .linea:active { transform: none; }
 }
+
+/* intro una vez por sesión: si ya se vio, el guion de la cabecera marca <html class="sin-intro"> antes de pintar */
+html.sin-intro #intro { display: none; }
+html.sin-intro .app.pre .main { opacity: 1; transform: none; filter: none; }
+html.sin-intro .app.pre .dock { opacity: 1; }
