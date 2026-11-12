@@ -70,11 +70,12 @@ export function renderSituacion(root, store, ctx) {
   // ---------- 1. isla oscura: cómo están los 12 indicadores ----------
   const kb = el("div", { class: "keybox bg-flow1 ink rise", style: "--i:1" }, [el("div", { class: "kb-grid" }, [
     el("div", { class: "kb-lead" }, [
-      el("div", { class: "lab", text: "Indicadores clave" }),
+      el("div", { class: "lab", text: "Indicadores clave que empeoran" }),
       el("div", { class: "hero-num", text: `${worse} de ${ks.length}` }),
-      el("div", { class: "sub", text: "indicadores clave empeoran frente a su periodo anterior." }),
-      el("div", { class: "second" }, [el("span", { class: "num", text: es(G[""].n) }),
-        el("span", {}, [`de ${es(total)} ${unit.varias} tienen alguna alerta. ${es(G[""].grave)} con alguna alerta grave. `, el("a", { class: "go", href: "#situacion/alertas" }, ["Ver el mapa", ico("i-arrow")])])]),
+      // la entradilla de la página ya dice «6 de 12 empeoran» y «50 de 113 municipios tienen alguna alerta»: aquí, cómo se lee y el dato nuevo
+      el("div", { class: "sub", text: "Cada indicador se compara con su periodo anterior comparable. No hay un índice que sume indicadores distintos." }),
+      el("div", { class: "second" }, [el("span", { class: "num", text: es(G[""].grave) }),
+        el("span", {}, [`${G[""].grave === 1 ? "municipio tiene" : "municipios tienen"} alguna alerta grave, de los ${es(G[""].n)} con alguna alerta. `, el("a", { class: "go", href: "#situacion/alertas" }, ["Ver el mapa", ico("i-arrow")])])]),
     ]),
     estatusPanel({ ks, estados, onPick: (k) => drawer(k), lab: `Los ${ks.length} indicadores clave, de más a menos urgente`, sub: "Cada segmento es un indicador: elige uno para ver su serie." }),
   ])]);
